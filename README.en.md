@@ -4,6 +4,11 @@ A lightweight Flask web interface to manage a remote qBittorrent instance.
 
 > 🇫🇷 [Version française](README.md)
 
+## Screenshots
+
+![Torrent list](docs/torrents.png)
+![Tracker management](docs/trackers.png)
+
 ## Features
 
 - **Torrent list** — paginated, sortable and searchable table (server-side DataTables)

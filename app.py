@@ -63,7 +63,27 @@ logging.basicConfig(level=logging.DEBUG, format="[%(asctime)s] %(levelname)s %(m
 log = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "change-me-in-production-please")
+
+
+def _get_secret_key() -> str:
+    # Priorité 1 : variable d'environnement (usage serveur / avancé)
+    if key := os.environ.get("SECRET_KEY"):
+        return key
+    # Priorité 2 : clé persistée dans le dossier utilisateur
+    from pathlib import Path
+    key_file = Path.home() / ".qbittorrent-manager" / "secret.key"
+    key_file.parent.mkdir(exist_ok=True)
+    if key_file.exists():
+        return key_file.read_text().strip()
+    # Premier lancement : génération et sauvegarde
+    import secrets
+    key = secrets.token_hex(32)
+    key_file.write_text(key)
+    log.info("Nouvelle clé secrète générée : %s", key_file)
+    return key
+
+
+app.secret_key = _get_secret_key()
 
 # ---------------------------------------------------------------------------
 # Helpers

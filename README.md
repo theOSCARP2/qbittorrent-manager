@@ -35,9 +35,11 @@ Ouvrir [http://localhost:5000](http://localhost:5000) dans le navigateur, puis s
 
 ## Configuration
 
-| Variable d'environnement | Valeur par défaut | Description |
-|---|---|---|
-| `SECRET_KEY` | `change-me-in-production-please` | Clé secrète de session Flask — **à changer en production** |
+Au premier lancement, une clé secrète unique est automatiquement générée et sauvegardée dans `~/.qbittorrent-manager/secret.key`. Aucune action requise.
+
+| Variable d'environnement | Description |
+|---|---|
+| `SECRET_KEY` | Surcharge la clé générée automatiquement (usage serveur, Docker, etc.) |
 
 ## Notes
 

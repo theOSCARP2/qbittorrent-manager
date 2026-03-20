@@ -106,8 +106,19 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+
       - name: Télécharger les artifacts
         uses: actions/download-artifact@v4
+
+      - name: Extraire le changelog
+        id: changelog
+        run: |
+          TAG=${GITHUB_REF#refs/tags/v}
+          NOTES=$(awk "/^## \[${TAG}\]/{found=1; next} found && /^## \[/{exit} found{print}" CHANGELOG.md)
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Créer la release GitHub
         uses: softprops/action-gh-release@v2
@@ -116,4 +127,4 @@ jobs:
             windows/qbittorrent-manager.exe
             linux/qbittorrent-manager-linux
             macos/qbittorrent-manager-macos
-          generate_release_notes: true
+          body: ${{ steps.changelog.outputs.notes }}

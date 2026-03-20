@@ -39,19 +39,18 @@
 {% block content %}
 <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
   <h4 class="mb-0 fw-bold text-white">
-    <i class="bi bi-broadcast me-2 text-primary"></i>Tracker Management
+    <i class="bi bi-broadcast me-2 text-primary"></i><span data-i18n="trackers.title"></span>
   </h4>
   <button class="btn btn-sm btn-outline-secondary" id="btn-refresh-trackers">
-    <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+    <i class="bi bi-arrow-clockwise me-1"></i><span data-i18n="trackers.refresh"></span>
   </button>
 </div>
 
 <div class="alert alert-warning d-flex align-items-start gap-2 py-2" role="alert">
   <i class="bi bi-exclamation-triangle-fill mt-1 flex-shrink-0"></i>
   <span>
-    <strong>Performance note:</strong>
-    Loading trackers requires one API call per torrent. This may take a while on large libraries.
-    The page fetches data lazily — click <em>Refresh</em> or wait for auto-load.
+    <strong data-i18n="trackers.perf_note"></strong>
+    <span data-i18n="trackers.perf_text"></span>
   </span>
 </div>
 
@@ -64,7 +63,7 @@
     <div class="card h-100">
       <div class="card-header border-secondary d-flex align-items-center justify-content-between">
         <span class="fw-semibold text-white">
-          <i class="bi bi-table me-2 text-primary"></i>Vue globale des trackers
+          <i class="bi bi-table me-2 text-primary"></i><span data-i18n="trackers.overview"></span>
         </span>
         <span id="tracker-count-badge" class="badge bg-secondary"></span>
       </div>
@@ -73,7 +72,7 @@
         <!-- Loading state -->
         <div id="trackers-loading" class="text-center text-secondary py-5">
           <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-          Fetching trackers for all torrents…
+          <span data-i18n="trackers.fetching"></span>
         </div>
 
         <!-- Table (hidden until loaded) -->
@@ -82,13 +81,13 @@
           <!-- Bulk delete toolbar -->
           <div class="px-3 pt-3 pb-2 d-flex align-items-center gap-2 flex-wrap">
             <button class="btn btn-sm btn-outline-secondary" id="btn-tracker-select-all">
-              <i class="bi bi-check-all me-1"></i>Tout sélectionner
+              <i class="bi bi-check-all me-1"></i><span data-i18n="trackers.select_all"></span>
             </button>
             <button class="btn btn-sm btn-outline-secondary" id="btn-tracker-deselect-all">
-              <i class="bi bi-x-square me-1"></i>Désélectionner
+              <i class="bi bi-x-square me-1"></i><span data-i18n="trackers.deselect_all"></span>
             </button>
             <button class="btn btn-sm btn-outline-danger" id="btn-tracker-delete-selected" disabled>
-              <i class="bi bi-trash me-1"></i>Supprimer sélectionnés
+              <i class="bi bi-trash me-1"></i><span data-i18n="trackers.delete_selected"></span>
             </button>
             <span id="tracker-selected-count" class="text-secondary small"></span>
           </div>
@@ -99,10 +98,10 @@
               <thead class="table-dark">
                 <tr>
                   <th style="width:36px;"></th>
-                  <th>Tracker URL</th>
-                  <th style="width:100px;">Torrents</th>
-                  <th style="width:130px;">Statut</th>
-                  <th style="width:100px;">Actions</th>
+                  <th></th>
+                  <th style="width:100px;"></th>
+                  <th style="width:130px;"></th>
+                  <th style="width:100px;"></th>
                 </tr>
               </thead>
               <tbody id="trackers-tbody"></tbody>
@@ -118,12 +117,12 @@
               <div class="d-flex align-items-center gap-2 flex-wrap">
                 <!-- Bulk actions on the detail torrents -->
                 <button class="btn btn-xs btn-outline-secondary" id="btn-detail-select-all" style="font-size:.75rem;padding:2px 8px;">
-                  <i class="bi bi-check-all"></i> Tout
+                  <i class="bi bi-check-all"></i> <span data-i18n="trackers.det_select_all"></span>
                 </button>
-                <button class="btn btn-xs btn-outline-success"  id="btn-detail-resume"  style="font-size:.75rem;padding:2px 8px;" title="Start sélectionnés"><i class="bi bi-play-fill"></i></button>
-                <button class="btn btn-xs btn-outline-warning"  id="btn-detail-pause"   style="font-size:.75rem;padding:2px 8px;" title="Pause sélectionnés"><i class="bi bi-pause-fill"></i></button>
-                <button class="btn btn-xs btn-outline-info"     id="btn-detail-recheck" style="font-size:.75rem;padding:2px 8px;" title="Recheck sélectionnés"><i class="bi bi-arrow-repeat"></i></button>
-                <button class="btn btn-xs btn-outline-danger"   id="btn-detail-delete"  style="font-size:.75rem;padding:2px 8px;" title="Supprimer sélectionnés"><i class="bi bi-trash"></i></button>
+                <button class="btn btn-xs btn-outline-success"  id="btn-detail-resume"  style="font-size:.75rem;padding:2px 8px;"><i class="bi bi-play-fill"></i></button>
+                <button class="btn btn-xs btn-outline-warning"  id="btn-detail-pause"   style="font-size:.75rem;padding:2px 8px;"><i class="bi bi-pause-fill"></i></button>
+                <button class="btn btn-xs btn-outline-info"     id="btn-detail-recheck" style="font-size:.75rem;padding:2px 8px;"><i class="bi bi-arrow-repeat"></i></button>
+                <button class="btn btn-xs btn-outline-danger"   id="btn-detail-delete"  style="font-size:.75rem;padding:2px 8px;"><i class="bi bi-trash"></i></button>
                 <span id="detail-selected-count" class="text-secondary" style="font-size:.78rem;"></span>
                 <button class="btn btn-sm btn-outline-secondary" id="btn-close-details"><i class="bi bi-x"></i></button>
               </div>
@@ -133,9 +132,9 @@
                 <thead class="table-dark" style="position:sticky;top:0;">
                   <tr>
                     <th style="width:32px;"><input type="checkbox" class="form-check-input" id="chk-detail-header"></th>
-                    <th>Nom</th>
-                    <th style="width:130px;">État</th>
-                    <th style="width:110px;">Actions</th>
+                    <th data-i18n="trackers.det_col_name"></th>
+                    <th style="width:130px;" data-i18n="trackers.det_col_state"></th>
+                    <th style="width:110px;" data-i18n="trackers.det_col_actions"></th>
                   </tr>
                 </thead>
                 <tbody id="details-tbody"></tbody>
@@ -155,7 +154,7 @@
     <div class="card">
       <div class="card-header border-secondary">
         <span class="fw-semibold text-white">
-          <i class="bi bi-gear me-2 text-primary"></i>Opérations en masse
+          <i class="bi bi-gear me-2 text-primary"></i><span data-i18n="trackers.bulk_title"></span>
         </span>
       </div>
       <div class="card-body">
@@ -166,21 +165,21 @@
             <button class="nav-link active px-3 py-1" id="tab-replace"
                     data-bs-toggle="pill" data-bs-target="#pane-replace"
                     type="button" role="tab">
-              <i class="bi bi-arrow-left-right me-1"></i>Replace
+              <i class="bi bi-arrow-left-right me-1"></i><span data-i18n="trackers.tab_replace"></span>
             </button>
           </li>
           <li class="nav-item" role="presentation">
             <button class="nav-link px-3 py-1" id="tab-add"
                     data-bs-toggle="pill" data-bs-target="#pane-add"
                     type="button" role="tab">
-              <i class="bi bi-plus-lg me-1"></i>Add
+              <i class="bi bi-plus-lg me-1"></i><span data-i18n="trackers.tab_add"></span>
             </button>
           </li>
           <li class="nav-item" role="presentation">
             <button class="nav-link px-3 py-1" id="tab-remove"
                     data-bs-toggle="pill" data-bs-target="#pane-remove"
                     type="button" role="tab">
-              <i class="bi bi-dash-lg me-1"></i>Remove
+              <i class="bi bi-dash-lg me-1"></i><span data-i18n="trackers.tab_remove"></span>
             </button>
           </li>
         </ul>
@@ -189,59 +188,45 @@
 
           <!-- Replace tab -->
           <div class="tab-pane fade show active" id="pane-replace" role="tabpanel">
-            <p class="text-secondary" style="font-size:.85rem;">
-              For every torrent that uses <em>Old URL</em>, add <em>New URL</em> then remove <em>Old URL</em>.
-            </p>
+            <p class="text-secondary" style="font-size:.85rem;" data-i18n="trackers.replace_desc"></p>
             <div class="mb-3">
-              <label class="form-label text-secondary fw-semibold" for="replace-old">
-                Old Tracker URL
-              </label>
+              <label class="form-label text-secondary fw-semibold" for="replace-old" data-i18n="trackers.replace_old_label"></label>
               <input type="url" class="form-control bg-dark border-secondary text-white"
                      id="replace-old" placeholder="https://old.tracker.example/announce" />
             </div>
             <div class="mb-3">
-              <label class="form-label text-secondary fw-semibold" for="replace-new">
-                New Tracker URL
-              </label>
+              <label class="form-label text-secondary fw-semibold" for="replace-new" data-i18n="trackers.replace_new_label"></label>
               <input type="url" class="form-control bg-dark border-secondary text-white"
                      id="replace-new" placeholder="https://new.tracker.example/announce" />
             </div>
             <button class="btn btn-primary w-100" id="btn-do-replace">
-              <i class="bi bi-arrow-left-right me-2"></i>Replace Tracker
+              <i class="bi bi-arrow-left-right me-2"></i><span data-i18n="trackers.replace_btn"></span>
             </button>
           </div>
 
           <!-- Add tab -->
           <div class="tab-pane fade" id="pane-add" role="tabpanel">
-            <p class="text-secondary" style="font-size:.85rem;">
-              Add the tracker URL to <strong>every</strong> torrent in the library.
-            </p>
+            <p class="text-secondary" style="font-size:.85rem;" data-i18n="trackers.add_desc"></p>
             <div class="mb-3">
-              <label class="form-label text-secondary fw-semibold" for="add-url">
-                Tracker URL to Add
-              </label>
+              <label class="form-label text-secondary fw-semibold" for="add-url" data-i18n="trackers.add_label"></label>
               <input type="url" class="form-control bg-dark border-secondary text-white"
                      id="add-url" placeholder="https://tracker.example/announce" />
             </div>
             <button class="btn btn-success w-100" id="btn-do-add">
-              <i class="bi bi-plus-lg me-2"></i>Add to All Torrents
+              <i class="bi bi-plus-lg me-2"></i><span data-i18n="trackers.add_btn"></span>
             </button>
           </div>
 
           <!-- Remove tab -->
           <div class="tab-pane fade" id="pane-remove" role="tabpanel">
-            <p class="text-secondary" style="font-size:.85rem;">
-              Remove the tracker URL from every torrent that currently uses it.
-            </p>
+            <p class="text-secondary" style="font-size:.85rem;" data-i18n="trackers.remove_desc"></p>
             <div class="mb-3">
-              <label class="form-label text-secondary fw-semibold" for="remove-url">
-                Tracker URL to Remove
-              </label>
+              <label class="form-label text-secondary fw-semibold" for="remove-url" data-i18n="trackers.remove_label"></label>
               <input type="url" class="form-control bg-dark border-secondary text-white"
                      id="remove-url" placeholder="https://old.tracker.example/announce" />
             </div>
             <button class="btn btn-danger w-100" id="btn-do-remove">
-              <i class="bi bi-dash-lg me-2"></i>Remove from Torrents
+              <i class="bi bi-dash-lg me-2"></i><span data-i18n="trackers.remove_btn"></span>
             </button>
           </div>
 
@@ -253,7 +238,7 @@
           <div class="d-flex align-items-center justify-content-between mb-2">
             <span class="fw-semibold text-white" id="bulk-summary"></span>
             <button class="btn btn-sm btn-outline-secondary" id="btn-clear-results">
-              <i class="bi bi-x"></i> Clear
+              <i class="bi bi-x"></i> <span data-i18n="trackers.results_clear"></span>
             </button>
           </div>
           <div id="bulk-results" class="border border-secondary rounded p-2"></div>
@@ -301,16 +286,16 @@ async function loadTrackers() {
     const resp = await fetch('/api/trackers');
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({}));
-      showToast(err.error || 'Failed to load trackers', 'danger');
+      showToast(err.error || __('trackers.load_failed'), 'danger');
       document.getElementById('trackers-loading').innerHTML =
-        '<span class="text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Load failed — click Refresh to retry.</span>';
+        `<span class="text-danger"><i class="bi bi-exclamation-triangle me-2"></i>${__('trackers.load_failed')}</span>`;
       return;
     }
     trackerMap = await resp.json();
   } catch (e) {
-    showToast('Network error: ' + e.message, 'danger');
+    showToast(__('trackers.network_error') + e.message, 'danger');
     document.getElementById('trackers-loading').innerHTML =
-      '<span class="text-danger"><i class="bi bi-exclamation-triangle me-2"></i>' + e.message + '</span>';
+      `<span class="text-danger"><i class="bi bi-exclamation-triangle me-2"></i>${escHtml(e.message)}</span>`;
     return;
   }
 
@@ -320,7 +305,7 @@ async function loadTrackers() {
   updateTrackerSelectedCount();
 
   const entries = Object.entries(trackerMap);
-  document.getElementById('tracker-count-badge').textContent = entries.length + ' trackers';
+  document.getElementById('tracker-count-badge').textContent = entries.length + ' ' + __('trackers.count');
 
   const rows = entries.map(([url, info]) => ({
     url,
@@ -344,14 +329,14 @@ async function loadTrackers() {
           render: (url) => `<input type="checkbox" class="form-check-input tracker-chk" data-url="${escHtml(url)}">`,
         },
         {
-          title: 'Tracker URL',
+          title: __('trackers.col_url'),
           data: 'url',
           render: (url, type) => type === 'display'
             ? `<span class="text-break font-monospace" style="font-size:.82rem;">${escHtml(url)}</span>`
             : url,
         },
         {
-          title: 'Torrents',
+          title: __('trackers.col_torrents'),
           data: 'count',
           type: 'num',
           render: (n, type) => type === 'display'
@@ -359,22 +344,22 @@ async function loadTrackers() {
             : n,
         },
         {
-          title: 'Statut',
+          title: __('trackers.col_status'),
           data: null,
           type: 'num',
           render: (row, type) => renderStatusBadges(row, type),
         },
         {
-          title: 'Actions',
+          title: __('trackers.col_actions'),
           data: 'url',
           orderable: false,
           searchable: false,
           render: (url) => {
             const u = escHtml(url);
             return `<div class="d-flex gap-1" data-url="${u}">
-              <button class="btn btn-sm btn-outline-info"      data-action="details"  title="Voir les torrents"><i class="bi bi-info-circle"></i></button>
-              <button class="btn btn-sm btn-outline-secondary" data-action="replace"  title="Utiliser dans Replace"><i class="bi bi-arrow-left-right"></i></button>
-              <button class="btn btn-sm btn-outline-danger"    data-action="delete"   title="Supprimer ce tracker"><i class="bi bi-trash"></i></button>
+              <button class="btn btn-sm btn-outline-info"      data-action="details"  title="${__('trackers.action_details')}"><i class="bi bi-info-circle"></i></button>
+              <button class="btn btn-sm btn-outline-secondary" data-action="replace"  title="${__('trackers.action_replace')}"><i class="bi bi-arrow-left-right"></i></button>
+              <button class="btn btn-sm btn-outline-danger"    data-action="delete"   title="${__('trackers.action_delete')}"><i class="bi bi-trash"></i></button>
             </div>`;
           },
         },
@@ -384,11 +369,11 @@ async function loadTrackers() {
       lengthMenu: [10, 20, 50, 100],
       language: {
         search: '',
-        searchPlaceholder: '🔍  Rechercher un tracker…',
-        emptyTable: '<span class="text-secondary">No trackers found</span>',
-        zeroRecords: '<span class="text-secondary">No matching trackers</span>',
-        info: '_START_–_END_ of _TOTAL_ trackers',
-        lengthMenu: '_MENU_ per page',
+        searchPlaceholder: __('trackers.search'),
+        emptyTable: `<span class="text-secondary">${__('trackers.empty')}</span>`,
+        zeroRecords: `<span class="text-secondary">${__('trackers.no_match')}</span>`,
+        info: __('trackers.info'),
+        lengthMenu: __('trackers.per_page'),
       },
     });
 
@@ -418,14 +403,9 @@ const STATE_MAP = {
   error:'bg-danger', missingFiles:'bg-danger',
   uploading:'bg-success', forcedUP:'bg-success',
   pausedUP:'bg-secondary', pausedDL:'bg-secondary',
-  stalledUP:'bg-warning text-dark', stalledDL:'bg-warning text-dark',
+  stalledUP:'bg-success', stalledDL:'bg-warning text-dark',
   checkingUP:'bg-info text-dark', checkingDL:'bg-info text-dark',
   downloading:'bg-primary', forcedDL:'bg-primary',
-};
-const STATE_LABELS = {
-  uploading:'Seeding', forcedUP:'Forced↑', pausedUP:'Paused', pausedDL:'Paused',
-  stalledUP:'Stalled', stalledDL:'Stalled', downloading:'DL', forcedDL:'Forced↓',
-  checkingUP:'Check', checkingDL:'Check', error:'Error', missingFiles:'Missing',
 };
 
 let currentDetailTorrents = [];  // cache for the currently displayed tracker
@@ -446,7 +426,7 @@ function renderDetailRows() {
   const tbody = document.getElementById('details-tbody');
   tbody.innerHTML = currentDetailTorrents.map(t => {
     const cls   = STATE_MAP[t.state]    || 'bg-secondary';
-    const label = STATE_LABELS[t.state] || t.state || '?';
+    const label = __('state.' + t.state) || t.state || '?';
     const pct   = Math.round((t.progress || 0) * 100);
     const h     = escHtml(t.hash);
     return `<tr>
@@ -458,10 +438,10 @@ function renderDetailRows() {
       </td>
       <td>
         <div class="d-flex gap-1" data-hash="${h}">
-          <button class="btn btn-outline-success" style="padding:1px 6px;font-size:.72rem;" data-detail-action="resume"  title="Start"><i class="bi bi-play-fill"></i></button>
-          <button class="btn btn-outline-warning" style="padding:1px 6px;font-size:.72rem;" data-detail-action="pause"   title="Pause"><i class="bi bi-pause-fill"></i></button>
-          <button class="btn btn-outline-info"    style="padding:1px 6px;font-size:.72rem;" data-detail-action="recheck" title="Recheck"><i class="bi bi-arrow-repeat"></i></button>
-          <button class="btn btn-outline-danger"  style="padding:1px 6px;font-size:.72rem;" data-detail-action="delete"  title="Delete"><i class="bi bi-trash"></i></button>
+          <button class="btn btn-outline-success" style="padding:1px 6px;font-size:.72rem;" data-detail-action="resume"  title="${__('trackers.action_resume')}"><i class="bi bi-play-fill"></i></button>
+          <button class="btn btn-outline-warning" style="padding:1px 6px;font-size:.72rem;" data-detail-action="pause"   title="${__('trackers.action_pause')}"><i class="bi bi-pause-fill"></i></button>
+          <button class="btn btn-outline-info"    style="padding:1px 6px;font-size:.72rem;" data-detail-action="recheck" title="${__('trackers.action_recheck')}"><i class="bi bi-arrow-repeat"></i></button>
+          <button class="btn btn-outline-danger"  style="padding:1px 6px;font-size:.72rem;" data-detail-action="delete"  title="${__('trackers.action_del_t')}"><i class="bi bi-trash"></i></button>
         </div>
       </td>
     </tr>`;
@@ -474,13 +454,13 @@ function getDetailSelectedHashes() {
 
 function updateDetailSelectedCount() {
   const n = getDetailSelectedHashes().length;
-  document.getElementById('detail-selected-count').textContent = n ? `${n} sélectionné(s)` : '';
+  document.getElementById('detail-selected-count').textContent = n ? `${n} ${__('trackers.det_selected')}` : '';
 }
 
 async function detailAction(action, hashOrNull) {
   const hashes = hashOrNull ? [hashOrNull] : getDetailSelectedHashes();
-  if (!hashes.length) { showToast('Aucun torrent sélectionné.', 'warning'); return; }
-  if (action === 'delete' && !confirm(`Supprimer ${hashes.length} torrent(s) ?`)) return;
+  if (!hashes.length) { showToast(__('trackers.no_selection'), 'warning'); return; }
+  if (action === 'delete' && !confirm(__('trackers.confirm_torrents', {n: hashes.length}))) return;
 
   const resp = await fetch('/api/torrent/action', {
     method: 'POST',
@@ -489,7 +469,7 @@ async function detailAction(action, hashOrNull) {
   });
   const data = await resp.json();
   if (data.ok) {
-    showToast(`${action} appliqué à ${data.count} torrent(s).`, 'success');
+    showToast(`${action} ${__('trackers.applied')} ${data.count} ${__('trackers.t_action')}`, 'success');
     // Update state in currentDetailTorrents optimistically
     const hashSet = new Set(hashes);
     if (action === 'delete') {
@@ -501,7 +481,7 @@ async function detailAction(action, hashOrNull) {
     renderDetailRows();
     updateDetailSelectedCount();
   } else {
-    showToast(data.error || 'Erreur', 'danger');
+    showToast(data.error || __('toast.failed'), 'danger');
   }
 }
 
@@ -544,20 +524,20 @@ function getSelectedTrackerUrls() {
 
 function updateTrackerSelectedCount() {
   const n = selectedTrackerUrls.size;
-  document.getElementById('tracker-selected-count').textContent = n ? `${n} sélectionné(s)` : '';
+  document.getElementById('tracker-selected-count').textContent = n ? `${n} ${__('trackers.selected_count')}` : '';
   document.getElementById('btn-tracker-delete-selected').disabled = n === 0;
 }
 
 async function deleteTrackers(urls) {
   if (!urls.length) return;
   const label = urls.length === 1
-    ? `Supprimer le tracker :\n${urls[0]}`
-    : `Supprimer ${urls.length} trackers de tous les torrents ?`;
+    ? __('trackers.confirm_delete_one') + urls[0]
+    : __('trackers.confirm_delete_many', {n: urls.length});
   if (!confirm(label)) return;
 
   const btn = document.getElementById('btn-tracker-delete-selected');
   btn.disabled = true;
-  showToast(`Suppression de ${urls.length} tracker(s)…`, 'info');
+  showToast(`${urls.length} ${__('trackers.deleting')}`, 'info');
 
   try {
     const resp = await fetch('/api/tracker/delete-many', {
@@ -567,15 +547,15 @@ async function deleteTrackers(urls) {
     });
     const data = await resp.json();
     if (!resp.ok || data.error) {
-      showToast(data.error || 'Échec de la suppression', 'danger');
+      showToast(data.error || __('trackers.delete_failed'), 'danger');
       return;
     }
-    const msg = `✓ ${data.total_removed} suppression(s)` +
-      (data.failed ? ` — ✗ ${data.failed} erreur(s)` : '');
+    const msg = `✓ ${data.total_removed} ${__('trackers.done')}` +
+      (data.failed ? ` — ✗ ${data.failed} ${__('trackers.errors_count')}` : '');
     showToast(msg, data.failed ? 'warning' : 'success');
     setTimeout(loadTrackers, 800);
   } catch (e) {
-    showToast('Erreur réseau : ' + e.message, 'danger');
+    showToast(__('trackers.network_error') + e.message, 'danger');
   } finally {
     btn.disabled = false;
   }
@@ -649,14 +629,14 @@ async function doBulkOp(operation, oldUrl, newUrl) {
   const btn = btnMap[operation];
   const origHtml = btn.innerHTML;
   btn.disabled = true;
-  btn.innerHTML = `<span class="spinner-border spinner-inline me-2" role="status"></span>Working…`;
+  btn.innerHTML = `<span class="spinner-border spinner-inline me-2" role="status"></span>${__('trackers.processing')}`;
 
   const wrapper = document.getElementById('bulk-results-wrapper');
   const resultsEl = document.getElementById('bulk-results');
   const summaryEl = document.getElementById('bulk-summary');
   wrapper.classList.remove('d-none');
   resultsEl.innerHTML = '';
-  summaryEl.innerHTML = `<span class="spinner-border spinner-inline me-2" role="status"></span>Processing…`;
+  summaryEl.innerHTML = `<span class="spinner-border spinner-inline me-2" role="status"></span>${__('trackers.processing')}`;
 
   try {
     const resp = await fetch('/api/tracker/bulk', {
@@ -667,17 +647,17 @@ async function doBulkOp(operation, oldUrl, newUrl) {
     const data = await resp.json();
 
     if (!resp.ok || data.error) {
-      showToast(data.error || 'Bulk operation failed', 'danger');
-      summaryEl.textContent = 'Error: ' + (data.error || 'unknown');
+      showToast(data.error || __('toast.failed'), 'danger');
+      summaryEl.textContent = __('trackers.delete_failed') + ': ' + (data.error || '');
       return;
     }
 
     // Summary
     summaryEl.innerHTML =
       `<i class="bi bi-check-circle-fill text-success me-1"></i>` +
-      `Done — <strong class="text-success">${data.success}</strong> ok` +
+      `${__('trackers.done_summary')}<strong class="text-success">${data.success}</strong> ${__('trackers.ok')}` +
       (data.failed > 0
-        ? `, <strong class="text-danger">${data.failed}</strong> failed`
+        ? `, <strong class="text-danger">${data.failed}</strong> ${__('trackers.failed_op')}`
         : '');
 
     // Detail rows
@@ -693,7 +673,7 @@ async function doBulkOp(operation, oldUrl, newUrl) {
     ).join('');
 
     showToast(
-      `${data.operation}: ${data.success} ok${data.failed ? ', ' + data.failed + ' failed' : ''}`,
+      `${data.operation}: ${data.success} ${__('trackers.ok')}${data.failed ? ', ' + data.failed + ' ' + __('trackers.failed_op') : ''}`,
       data.failed ? 'warning' : 'success'
     );
 
@@ -701,8 +681,8 @@ async function doBulkOp(operation, oldUrl, newUrl) {
     setTimeout(loadTrackers, 1200);
 
   } catch (e) {
-    showToast('Network error: ' + e.message, 'danger');
-    summaryEl.textContent = 'Error: ' + e.message;
+    showToast(__('trackers.network_error') + e.message, 'danger');
+    summaryEl.textContent = __('trackers.delete_failed') + ': ' + e.message;
   } finally {
     btn.disabled = false;
     btn.innerHTML = origHtml;
@@ -714,21 +694,21 @@ async function doBulkOp(operation, oldUrl, newUrl) {
 document.getElementById('btn-do-replace').addEventListener('click', () => {
   const oldUrl = document.getElementById('replace-old').value.trim();
   const newUrl = document.getElementById('replace-new').value.trim();
-  if (!oldUrl) { showToast('Old tracker URL is required.', 'warning'); return; }
-  if (!newUrl) { showToast('New tracker URL is required.', 'warning'); return; }
-  if (oldUrl === newUrl) { showToast('Old and new URLs are identical.', 'warning'); return; }
+  if (!oldUrl) { showToast(__('trackers.old_url_required'), 'warning'); return; }
+  if (!newUrl) { showToast(__('trackers.new_url_required'), 'warning'); return; }
+  if (oldUrl === newUrl) { showToast(__('trackers.urls_identical'), 'warning'); return; }
   doBulkOp('replace', oldUrl, newUrl);
 });
 
 document.getElementById('btn-do-add').addEventListener('click', () => {
   const url = document.getElementById('add-url').value.trim();
-  if (!url) { showToast('Tracker URL is required.', 'warning'); return; }
+  if (!url) { showToast(__('trackers.url_required'), 'warning'); return; }
   doBulkOp('add', '', url);
 });
 
 document.getElementById('btn-do-remove').addEventListener('click', () => {
   const url = document.getElementById('remove-url').value.trim();
-  if (!url) { showToast('Tracker URL is required.', 'warning'); return; }
+  if (!url) { showToast(__('trackers.url_required'), 'warning'); return; }
   doBulkOp('remove', url, '');
 });
 

@@ -13,7 +13,7 @@
         </span>
       </div>
       <h2 class="fw-bold text-white">qBit Manager</h2>
-      <p class="text-secondary mb-0">Connect to your qBittorrent instance</p>
+      <p class="text-secondary mb-0" data-i18n="login.subtitle"></p>
     </div>
 
     <!-- Card -->
@@ -24,7 +24,7 @@
           <!-- Server URL -->
           <div class="mb-3">
             <label for="qb_url" class="form-label text-secondary fw-semibold">
-              <i class="bi bi-hdd-network me-1"></i>Server URL
+              <i class="bi bi-hdd-network me-1"></i><span data-i18n="login.server_url"></span>
             </label>
             <input type="url"
                    class="form-control bg-dark border-secondary text-white"
@@ -33,14 +33,14 @@
                    value="{{ request.form.get('qb_url', '') }}"
                    required autofocus />
             <div class="form-text text-secondary">
-              Include the protocol and port, e.g. <code>http://192.168.1.10:8080</code>
+              <span data-i18n="login.server_hint"></span> <code>http://192.168.1.10:8080</code>
             </div>
           </div>
 
           <!-- Username -->
           <div class="mb-3">
             <label for="username" class="form-label text-secondary fw-semibold">
-              <i class="bi bi-person me-1"></i>Username
+              <i class="bi bi-person me-1"></i><span data-i18n="login.username"></span>
             </label>
             <input type="text"
                    class="form-control bg-dark border-secondary text-white"
@@ -52,15 +52,14 @@
           <!-- Password -->
           <div class="mb-4">
             <label for="password" class="form-label text-secondary fw-semibold">
-              <i class="bi bi-lock me-1"></i>Password
+              <i class="bi bi-lock me-1"></i><span data-i18n="login.password"></span>
             </label>
             <div class="input-group">
               <input type="password"
                      class="form-control bg-dark border-secondary text-white"
                      id="password" name="password"
                      placeholder="••••••••" />
-              <button class="btn btn-outline-secondary" type="button" id="togglePwd"
-                      title="Show / hide password">
+              <button class="btn btn-outline-secondary" type="button" id="togglePwd">
                 <i class="bi bi-eye" id="pwdIcon"></i>
               </button>
             </div>
@@ -69,7 +68,7 @@
           <!-- Submit -->
           <div class="d-grid">
             <button type="submit" class="btn btn-primary btn-lg fw-semibold">
-              <i class="bi bi-plug-fill me-2"></i>Connect
+              <i class="bi bi-plug-fill me-2"></i><span data-i18n="login.connect"></span>
             </button>
           </div>
 
@@ -77,9 +76,7 @@
       </div>
     </div>
 
-    <p class="text-center text-secondary mt-4" style="font-size:.8rem;">
-      Credentials are stored only in the server-side session and never persisted.
-    </p>
+    <p class="text-center text-secondary mt-4" style="font-size:.8rem;" data-i18n="login.disclaimer"></p>
   </div>
 </div>
 {% endblock %}

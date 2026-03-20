@@ -29,8 +29,8 @@
   </h4>
   <div class="d-flex align-items-center gap-2">
     <span id="cache-status" class="text-secondary small"></span>
-    <button class="btn btn-sm btn-outline-secondary" id="btn-refresh" title="Refresh">
-      <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+    <button class="btn btn-sm btn-outline-secondary" id="btn-refresh">
+      <i class="bi bi-arrow-clockwise me-1"></i><span data-i18n="torrents.refresh"></span>
     </button>
   </div>
 </div>
@@ -42,19 +42,19 @@
 <div class="card mb-3">
   <div class="card-body py-2 px-3 d-flex flex-wrap align-items-center gap-2">
     <span class="text-secondary me-2" style="font-size:.85rem;">
-      <i class="bi bi-check2-square me-1"></i>Bulk actions:
+      <i class="bi bi-check2-square me-1"></i><span data-i18n="torrents.bulk_actions"></span>
     </span>
     <button class="btn btn-sm btn-outline-secondary" id="btn-select-all">
-      <i class="bi bi-check-all me-1"></i>Select All (page)
+      <i class="bi bi-check-all me-1"></i><span data-i18n="torrents.select_all"></span>
     </button>
     <button class="btn btn-sm btn-outline-secondary" id="btn-deselect-all">
-      <i class="bi bi-x-square me-1"></i>Deselect All
+      <i class="bi bi-x-square me-1"></i><span data-i18n="torrents.deselect_all"></span>
     </button>
     <div class="vr mx-1"></div>
-    <button class="btn btn-sm btn-outline-warning"  id="btn-pause-selected"><i class="bi bi-pause-fill me-1"></i>Pause</button>
-    <button class="btn btn-sm btn-outline-success"  id="btn-resume-selected"><i class="bi bi-play-fill me-1"></i>Resume</button>
-    <button class="btn btn-sm btn-outline-info"     id="btn-recheck-selected"><i class="bi bi-arrow-repeat me-1"></i>Recheck</button>
-    <button class="btn btn-sm btn-outline-danger"   id="btn-delete-selected"><i class="bi bi-trash me-1"></i>Delete</button>
+    <button class="btn btn-sm btn-outline-warning"  id="btn-pause-selected"><i class="bi bi-pause-fill me-1"></i><span data-i18n="torrents.pause"></span></button>
+    <button class="btn btn-sm btn-outline-success"  id="btn-resume-selected"><i class="bi bi-play-fill me-1"></i><span data-i18n="torrents.resume"></span></button>
+    <button class="btn btn-sm btn-outline-info"     id="btn-recheck-selected"><i class="bi bi-arrow-repeat me-1"></i><span data-i18n="torrents.recheck"></span></button>
+    <button class="btn btn-sm btn-outline-danger"   id="btn-delete-selected"><i class="bi bi-trash me-1"></i><span data-i18n="torrents.delete"></span></button>
     <span id="selected-count" class="ms-2 text-secondary" style="font-size:.82rem;"></span>
   </div>
 </div>
@@ -71,16 +71,7 @@
             <thead class="table-dark">
               <tr>
                 <th style="width:36px;"><input type="checkbox" class="form-check-input" id="chk-header" /></th>
-                <th>Name</th>
-                <th>Size</th>
-                <th>Progress</th>
-                <th>State</th>
-                <th>Seeds</th>
-                <th>Peers</th>
-                <th>Down</th>
-                <th>Up</th>
-                <th>Ratio</th>
-                <th>Actions</th>
+                <th></th><th></th><th></th><th></th><th></th><th></th><th></th><th></th><th></th><th></th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -95,9 +86,9 @@
     <div class="card">
       <div class="card-header border-secondary d-flex align-items-center justify-content-between">
         <span class="fw-semibold text-white" style="font-size:.9rem;">
-          <i class="bi bi-info-circle me-2 text-primary"></i>Détails du torrent
+          <i class="bi bi-info-circle me-2 text-primary"></i><span data-i18n="detail.title"></span>
         </span>
-        <button class="btn btn-sm btn-outline-secondary" id="btn-close-detail" title="Fermer">
+        <button class="btn btn-sm btn-outline-secondary" id="btn-close-detail">
           <i class="bi bi-x-lg"></i>
         </button>
       </div>
@@ -113,17 +104,17 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content bg-dark border-secondary">
       <div class="modal-header border-secondary">
-        <h5 class="modal-title text-danger"><i class="bi bi-trash me-2"></i>Delete Torrents</h5>
+        <h5 class="modal-title text-danger"><i class="bi bi-trash me-2"></i><span data-i18n="modal.delete_title"></span></h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body text-secondary" id="delete-modal-body"></div>
       <div class="modal-footer border-secondary">
         <div class="form-check me-auto">
           <input class="form-check-input" type="checkbox" id="chk-delete-files" />
-          <label class="form-check-label text-secondary" for="chk-delete-files">Also delete files from disk</label>
+          <label class="form-check-label text-secondary" for="chk-delete-files" data-i18n="modal.delete_files"></label>
         </div>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-danger" id="btn-confirm-delete"><i class="bi bi-trash me-1"></i>Delete</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="modal.cancel"></button>
+        <button type="button" class="btn btn-danger" id="btn-confirm-delete"><i class="bi bi-trash me-1"></i><span data-i18n="modal.confirm_delete"></span></button>
       </div>
     </div>
   </div>
@@ -159,25 +150,21 @@ const STATE_MAP = {
   uploading:'bg-success', forcedUP:'bg-success',
   pausedUP:'bg-secondary', pausedDL:'bg-secondary',
   queuedUP:'bg-secondary', queuedDL:'bg-secondary',
-  stalledUP:'bg-warning text-dark', stalledDL:'bg-warning text-dark',
+  stalledUP:'bg-success', stalledDL:'bg-warning text-dark',
   checkingUP:'bg-info text-dark', checkingDL:'bg-info text-dark',
   checkingResumeData:'bg-info text-dark',
   allocating:'bg-info text-dark', moving:'bg-info text-dark',
   downloading:'bg-primary', forcedDL:'bg-primary', metaDL:'bg-info text-dark',
 };
-const STATE_LABELS = {
-  uploading:'Seeding', forcedUP:'Forced↑', pausedUP:'Paused', pausedDL:'Paused',
-  stalledUP:'Stalled', stalledDL:'Stalled', downloading:'Downloading',
-  checkingUP:'Checking', checkingDL:'Checking', checkingResumeData:'Checking',
-  queuedUP:'Queued', queuedDL:'Queued', allocating:'Allocating',
-  moving:'Moving', metaDL:'Meta DL', forcedDL:'Forced↓',
-  error:'Error', missingFiles:'Missing',
-};
+
+function stateLabel(state) {
+  return __('state.' + state) || state || '?';
+}
 
 function renderRow(t) {
   const pct     = Math.round((t.progress||0)*100);
   const cls     = STATE_MAP[t.state] || 'bg-secondary';
-  const label   = STATE_LABELS[t.state] || t.state || '?';
+  const label   = stateLabel(t.state);
   const pbCls   = pct>=100 ? 'bg-success' : pct>=50 ? 'bg-primary' : 'bg-warning';
 
   return [
@@ -197,10 +184,10 @@ function renderRow(t) {
     `<span data-order="${t.upspeed||0}">${fmtSpeed(t.upspeed)}</span>`,
     `<span data-order="${t.ratio||0}">${t.ratio != null ? t.ratio.toFixed(3) : '—'}</span>`,
     `<div class="d-flex gap-1">
-      <button class="btn btn-sm btn-outline-success action-btn" onclick="torrentAction('resume','${t.hash}')" title="Start/Resume"><i class="bi bi-play-fill"></i></button>
-      <button class="btn btn-sm btn-outline-warning action-btn" onclick="torrentAction('pause','${t.hash}')"  title="Pause/Stop"><i class="bi bi-pause-fill"></i></button>
-      <button class="btn btn-sm btn-outline-info    action-btn" onclick="torrentAction('recheck','${t.hash}')" title="Recheck"><i class="bi bi-arrow-repeat"></i></button>
-      <button class="btn btn-sm btn-outline-danger  action-btn" onclick="openDeleteModal(['${t.hash}'])"       title="Delete"><i class="bi bi-trash"></i></button>
+      <button class="btn btn-sm btn-outline-success action-btn" onclick="torrentAction('resume','${t.hash}')" title="${__('action.start_title')}"><i class="bi bi-play-fill"></i></button>
+      <button class="btn btn-sm btn-outline-warning action-btn" onclick="torrentAction('pause','${t.hash}')"  title="${__('action.pause_title')}"><i class="bi bi-pause-fill"></i></button>
+      <button class="btn btn-sm btn-outline-info    action-btn" onclick="torrentAction('recheck','${t.hash}')" title="${__('action.recheck_title')}"><i class="bi bi-arrow-repeat"></i></button>
+      <button class="btn btn-sm btn-outline-danger  action-btn" onclick="openDeleteModal(['${t.hash}'])"       title="${__('action.delete_title')}"><i class="bi bi-trash"></i></button>
      </div>`,
   ];
 }
@@ -254,34 +241,34 @@ function initTable() {
           });
         })
         .catch(err => {
-          showToast('Failed to load torrents: ' + err.message, 'danger');
+          showToast(__('toast.failed_load') + err.message, 'danger');
           callback({ draw: dtParams.draw, recordsTotal: 0, recordsFiltered: 0, data: [] });
         });
     },
     columns: [
       { orderable: false, searchable: false, width: '36px' },
-      { title: 'Name' },
-      { title: 'Size',     type: 'num' },
-      { title: 'Progress', orderable: false, searchable: false },
-      { title: 'State' },
-      { title: 'Seeds',    type: 'num' },
-      { title: 'Peers',    type: 'num' },
-      { title: 'Down',     type: 'num' },
-      { title: 'Up',       type: 'num' },
-      { title: 'Ratio',    type: 'num' },
-      { title: 'Actions',  orderable: false, searchable: false },
+      { title: __('col.name') },
+      { title: __('col.size'),     type: 'num' },
+      { title: __('col.progress'), orderable: false, searchable: false },
+      { title: __('col.state') },
+      { title: __('col.seeds'),    type: 'num' },
+      { title: __('col.peers'),    type: 'num' },
+      { title: __('col.down'),     type: 'num' },
+      { title: __('col.up'),       type: 'num' },
+      { title: __('col.ratio'),    type: 'num' },
+      { title: __('col.actions'),  orderable: false, searchable: false },
     ],
     order: [[1, 'asc']],
     pageLength: 20,
     lengthMenu: [20, 50, 100, 200],
     language: {
       search: '<i class="bi bi-search me-1"></i>',
-      searchPlaceholder: 'Filter torrents…',
-      processing: '<div class="spinner-border spinner-border-sm text-primary me-2"></div> Chargement…',
-      emptyTable: '<span class="text-secondary">No torrents</span>',
-      zeroRecords: '<span class="text-secondary">No matching torrents</span>',
-      lengthMenu: '_MENU_ per page',
-      info: '_START_–_END_ of _TOTAL_',
+      searchPlaceholder: __('dt.search_placeholder'),
+      processing: `<div class="spinner-border spinner-border-sm text-primary me-2"></div> ${__('dt.processing')}`,
+      emptyTable: `<span class="text-secondary">${__('dt.empty')}</span>`,
+      zeroRecords: `<span class="text-secondary">${__('dt.no_match')}</span>`,
+      lengthMenu: __('dt.per_page'),
+      info: __('dt.info'),
     },
   });
 
@@ -297,7 +284,7 @@ function initTable() {
 function schedulePoll() {
   if (pollTimer) return;
   document.getElementById('loading-bar').style.display = 'block';
-  document.getElementById('cache-status').textContent = 'Loading from server…';
+  document.getElementById('cache-status').textContent = __('toast.loading_server');
   pollTimer = setTimeout(() => {
     pollTimer = null;
     fetch('/api/torrents/status').then(r => r.json()).then(s => {
@@ -305,7 +292,9 @@ function schedulePoll() {
         dt.ajax.reload(null, false);
       } else {
         document.getElementById('cache-status').textContent =
-          s.total > 0 ? `Loaded ${s.total} torrents…` : 'Connecting to qBittorrent…';
+          s.total > 0
+            ? `${s.total} ${__('toast.loaded_torrents')}`
+            : __('toast.connecting');
         schedulePoll();
       }
     });
@@ -316,7 +305,7 @@ function schedulePoll() {
 function renderDetailPanel(t, props) {
   const pct   = Math.round((t.progress || 0) * 100);
   const cls   = STATE_MAP[t.state] || 'bg-secondary';
-  const label = STATE_LABELS[t.state] || t.state || '?';
+  const label = stateLabel(t.state);
   const pbCls = pct >= 100 ? 'bg-success' : pct >= 50 ? 'bg-primary' : 'bg-warning';
 
   const createdBy   = props ? (props.created_by  || '—') : '…';
@@ -340,7 +329,7 @@ function renderDetailPanel(t, props) {
     <!-- Stats -->
     <div class="row g-2 mb-3">
       <div class="col-6">
-        <div class="detail-label">Taille</div>
+        <div class="detail-label">${__('detail.size')}</div>
         <div class="detail-value">${fmtSize(t.size)}</div>
       </div>
       <div class="col-6">
@@ -352,58 +341,58 @@ function renderDetailPanel(t, props) {
         <div class="detail-value">${t.num_leechs ?? '—'}</div>
       </div>
       <div class="col-6">
-        <div class="detail-label">Téléchargement</div>
+        <div class="detail-label">${__('detail.download')}</div>
         <div class="detail-value">${fmtSpeed(t.dlspeed)}</div>
       </div>
       <div class="col-6">
-        <div class="detail-label">Upload</div>
+        <div class="detail-label">${__('detail.upload')}</div>
         <div class="detail-value">${fmtSpeed(t.upspeed)}</div>
       </div>
       <div class="col-6">
-        <div class="detail-label">Ratio</div>
+        <div class="detail-label">${__('detail.ratio')}</div>
         <div class="detail-value">${t.ratio != null ? t.ratio.toFixed(3) : '—'}</div>
       </div>
       <div class="col-6">
-        <div class="detail-label">Ajouté le</div>
+        <div class="detail-label">${__('detail.added_on')}</div>
         <div class="detail-value">${fmtDate(t.added_on)}</div>
       </div>
       <div class="col-6">
-        <div class="detail-label">Complété le</div>
+        <div class="detail-label">${__('detail.completed_on')}</div>
         <div class="detail-value">${fmtDate(t.completion_on)}</div>
       </div>
       <div class="col-6">
-        <div class="detail-label">Créé par</div>
+        <div class="detail-label">${__('detail.created_by')}</div>
         <div class="detail-value">${escHtml(createdBy)}</div>
       </div>
       <div class="col-6">
-        <div class="detail-label">Créé le</div>
+        <div class="detail-label">${__('detail.created_on')}</div>
         <div class="detail-value">${createdOn}</div>
       </div>
       <div class="col-12">
-        <div class="detail-label">Répertoire de destination</div>
+        <div class="detail-label">${__('detail.save_path')}</div>
         <div class="detail-value" style="word-break:break-all;font-size:.82rem;">${escHtml(t.save_path || '—')}</div>
       </div>
     </div>
 
     <!-- Hash -->
     <div class="mb-3">
-      <div class="detail-label mb-1">Hash</div>
+      <div class="detail-label mb-1">${__('detail.hash')}</div>
       <div class="detail-hash">${escHtml(t.hash || '—')}</div>
     </div>
 
     <!-- Actions -->
     <div class="d-flex gap-2 flex-wrap">
       <button class="btn btn-sm btn-outline-success" onclick="torrentAction('resume','${t.hash}')">
-        <i class="bi bi-play-fill me-1"></i>Resume
+        <i class="bi bi-play-fill me-1"></i>${__('action.resume')}
       </button>
       <button class="btn btn-sm btn-outline-warning" onclick="torrentAction('pause','${t.hash}')">
-        <i class="bi bi-pause-fill me-1"></i>Pause
+        <i class="bi bi-pause-fill me-1"></i>${__('action.pause')}
       </button>
       <button class="btn btn-sm btn-outline-info" onclick="torrentAction('recheck','${t.hash}')">
-        <i class="bi bi-arrow-repeat me-1"></i>Recheck
+        <i class="bi bi-arrow-repeat me-1"></i>${__('action.recheck')}
       </button>
       <button class="btn btn-sm btn-outline-danger" onclick="openDeleteModal(['${t.hash}'])">
-        <i class="bi bi-trash me-1"></i>Delete
+        <i class="bi bi-trash me-1"></i>${__('action.delete')}
       </button>
     </div>
   `;
@@ -467,23 +456,23 @@ async function torrentAction(action, hash, deleteFiles=false) {
   if (action==='delete') body.deleteFiles = deleteFiles;
   const resp = await fetch('/api/torrent/action', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
   const data = await resp.json();
-  if (data.ok) { showToast(`${action} applied.`, 'success'); setTimeout(()=>dt.ajax.reload(null,false), 500); }
-  else showToast(data.error || 'Failed', 'danger');
+  if (data.ok) { showToast(__('toast.action_applied'), 'success'); setTimeout(()=>dt.ajax.reload(null,false), 500); }
+  else showToast(data.error || __('toast.failed'), 'danger');
 }
 
 async function bulkAction(action) {
   const hashes = [...document.querySelectorAll('.row-chk:checked')].map(c=>c.dataset.hash);
-  if (!hashes.length) { showToast('No torrents selected.', 'warning'); return; }
+  if (!hashes.length) { showToast(__('toast.no_selection'), 'warning'); return; }
   const resp = await fetch('/api/torrent/action', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action,hashes})});
   const data = await resp.json();
-  if (data.ok) { showToast(`${data.count} torrent(s) ${action}.`, 'success'); setTimeout(()=>dt.ajax.reload(null,false), 500); }
-  else showToast(data.error || 'Failed', 'danger');
+  if (data.ok) { showToast(`${data.count} ${__('toast.count_action')} ${__('toast.deleted')}`, 'success'); setTimeout(()=>dt.ajax.reload(null,false), 500); }
+  else showToast(data.error || __('toast.failed'), 'danger');
 }
 
 // ── Selection ────────────────────────────────────────────────────────────────
 function updateSelectedCount() {
   const n = document.querySelectorAll('.row-chk:checked').length;
-  document.getElementById('selected-count').textContent = n ? `${n} selected` : '';
+  document.getElementById('selected-count').textContent = n ? `${n} ${__('trackers.selected_count')}` : '';
 }
 
 document.getElementById('chk-header').addEventListener('change', function() {
@@ -508,7 +497,7 @@ document.getElementById('btn-resume-selected').addEventListener('click',  () => 
 document.getElementById('btn-recheck-selected').addEventListener('click', () => bulkAction('recheck'));
 document.getElementById('btn-delete-selected').addEventListener('click',  () => {
   const hashes = [...document.querySelectorAll('.row-chk:checked')].map(c=>c.dataset.hash);
-  if (!hashes.length) { showToast('No torrents selected.', 'warning'); return; }
+  if (!hashes.length) { showToast(__('toast.no_selection'), 'warning'); return; }
   openDeleteModal(hashes);
 });
 document.getElementById('btn-refresh').addEventListener('click', () => dt.ajax.reload(null, false));
@@ -520,7 +509,7 @@ const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
 function openDeleteModal(hashes) {
   pendingDeleteHashes = hashes;
   document.getElementById('delete-modal-body').textContent =
-    hashes.length === 1 ? 'Delete this torrent?' : `Delete ${hashes.length} torrents?`;
+    hashes.length === 1 ? __('modal.delete_one') : __('modal.delete_many', {n: hashes.length});
   document.getElementById('chk-delete-files').checked = false;
   deleteModal.show();
 }
@@ -533,9 +522,9 @@ document.getElementById('btn-confirm-delete').addEventListener('click', async ()
   const data = await resp.json();
   if (data.ok) {
     if (pendingDeleteHashes.includes(currentDetailHash)) closeDetailPanel();
-    showToast(`${data.count} deleted.`, 'success');
+    showToast(`${data.count} ${__('toast.deleted')}`, 'success');
     setTimeout(()=>dt.ajax.reload(null,false), 500);
-  } else showToast(data.error || 'Failed', 'danger');
+  } else showToast(data.error || __('toast.failed'), 'danger');
 });
 
 // ── Init ─────────────────────────────────────────────────────────────────────

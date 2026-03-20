@@ -160,9 +160,14 @@
             &nbsp;·&nbsp;{{ session.get('qb_username') }}
           {% endif %}
         </span>
+        <button class="btn btn-sm btn-outline-secondary" id="btn-lang" title="Switch language"></button>
         <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-danger">
-          <i class="bi bi-box-arrow-right me-1"></i>Logout
+          <i class="bi bi-box-arrow-right me-1"></i><span data-i18n="nav.logout"></span>
         </a>
+      </div>
+      {% else %}
+      <div class="ms-auto">
+        <button class="btn btn-sm btn-outline-secondary" id="btn-lang" title="Switch language"></button>
       </div>
       {% endif %}
     </div>
@@ -201,11 +206,391 @@
 <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
 
 <script>
-/**
- * Show a toast notification.
- * @param {string} message
- * @param {'success'|'danger'|'warning'|'info'} type
- */
+// ── i18n ─────────────────────────────────────────────────────────────────────
+const TRANSLATIONS = {
+  fr: {
+    // Navbar
+    'nav.logout': 'Déconnexion',
+    'nav.lang':   'EN',
+    // Login
+    'login.subtitle':    'Connectez-vous à votre instance qBittorrent',
+    'login.server_url':  'URL du serveur',
+    'login.server_hint': 'Inclure le protocole et le port, ex.',
+    'login.username':    'Nom d\'utilisateur',
+    'login.password':    'Mot de passe',
+    'login.connect':     'Connexion',
+    'login.disclaimer':  'Les identifiants sont stockés uniquement en session serveur et ne sont jamais persistés.',
+    // Torrents toolbar
+    'torrents.bulk_actions': 'Actions groupées :',
+    'torrents.select_all':   'Tout sélectionner (page)',
+    'torrents.deselect_all': 'Désélectionner',
+    'torrents.pause':        'Pause',
+    'torrents.resume':       'Reprendre',
+    'torrents.recheck':      'Vérifier',
+    'torrents.delete':       'Supprimer',
+    'torrents.refresh':      'Rafraîchir',
+    // Colonnes
+    'col.name':    'Nom',
+    'col.size':    'Taille',
+    'col.progress':'Progression',
+    'col.state':   'État',
+    'col.seeds':   'Seeds',
+    'col.peers':   'Peers',
+    'col.down':    'Téléch.',
+    'col.up':      'Upload',
+    'col.ratio':   'Ratio',
+    'col.actions': 'Actions',
+    // États
+    'state.uploading':          'Seed',
+    'state.forcedUP':           'Forcé↑',
+    'state.pausedUP':           'Pausé',
+    'state.pausedDL':           'Pausé',
+    'state.stalledUP':          'Seed (inactif)',
+    'state.stalledDL':          'Bloqué',
+    'state.downloading':        'Téléch.',
+    'state.checkingUP':         'Vérif.',
+    'state.checkingDL':         'Vérif.',
+    'state.checkingResumeData': 'Vérif.',
+    'state.queuedUP':           'File',
+    'state.queuedDL':           'File',
+    'state.allocating':         'Alloc.',
+    'state.moving':             'Déplacement',
+    'state.metaDL':             'Meta DL',
+    'state.forcedDL':           'Forcé↓',
+    'state.error':              'Erreur',
+    'state.missingFiles':       'Manquant',
+    // DataTables
+    'dt.search_placeholder': 'Filtrer les torrents…',
+    'dt.processing':         'Chargement…',
+    'dt.empty':              'Aucun torrent',
+    'dt.no_match':           'Aucun résultat',
+    'dt.per_page':           '_MENU_ par page',
+    'dt.info':               '_START_–_END_ sur _TOTAL_',
+    // Panneau détail
+    'detail.title':        'Détails du torrent',
+    'detail.size':         'Taille',
+    'detail.download':     'Téléchargement',
+    'detail.upload':       'Upload',
+    'detail.ratio':        'Ratio',
+    'detail.added_on':     'Ajouté le',
+    'detail.completed_on': 'Complété le',
+    'detail.created_by':   'Créé par',
+    'detail.created_on':   'Créé le',
+    'detail.save_path':    'Répertoire de destination',
+    'detail.hash':         'Hash',
+    // Actions
+    'action.resume':      'Reprendre',
+    'action.pause':       'Pause',
+    'action.recheck':     'Vérifier',
+    'action.delete':      'Supprimer',
+    'action.start_title': 'Démarrer/Reprendre',
+    'action.pause_title': 'Pause/Stop',
+    'action.recheck_title': 'Vérifier',
+    'action.delete_title':  'Supprimer',
+    // Modal suppression
+    'modal.delete_title':   'Supprimer des torrents',
+    'modal.delete_one':     'Supprimer ce torrent ?',
+    'modal.delete_many':    'Supprimer {n} torrents ?',
+    'modal.delete_files':   'Supprimer aussi les fichiers du disque',
+    'modal.cancel':         'Annuler',
+    'modal.confirm_delete': 'Supprimer',
+    // Messages
+    'toast.no_selection':    'Aucun torrent sélectionné.',
+    'toast.failed_load':     'Échec du chargement : ',
+    'toast.action_applied':  'Action appliquée.',
+    'toast.failed':          'Échec',
+    'toast.loading_server':  'Chargement depuis le serveur…',
+    'toast.loaded_torrents': 'torrents chargés…',
+    'toast.connecting':      'Connexion à qBittorrent…',
+    'toast.deleted':         'supprimé(s).',
+    'toast.count_action':    'torrent(s)',
+    // Trackers
+    'trackers.title':           'Gestion des Trackers',
+    'trackers.refresh':         'Rafraîchir',
+    'trackers.perf_note':       'Note de performance :',
+    'trackers.perf_text':       'Le chargement des trackers nécessite un appel API par torrent. Cela peut prendre du temps sur de grandes bibliothèques. La page récupère les données à la demande — cliquer sur Rafraîchir ou attendre le chargement auto.',
+    'trackers.overview':        'Vue globale des trackers',
+    'trackers.select_all':      'Tout sélectionner',
+    'trackers.deselect_all':    'Désélectionner',
+    'trackers.delete_selected': 'Supprimer sélectionnés',
+    'trackers.col_url':         'Tracker URL',
+    'trackers.col_torrents':    'Torrents',
+    'trackers.col_status':      'Statut',
+    'trackers.col_actions':     'Actions',
+    'trackers.fetching':        'Récupération des trackers pour tous les torrents…',
+    'trackers.load_failed':     'Échec du chargement — cliquez sur Rafraîchir pour réessayer.',
+    'trackers.empty':           'Aucun tracker trouvé',
+    'trackers.no_match':        'Aucun tracker correspondant',
+    'trackers.search':          'Rechercher un tracker…',
+    'trackers.per_page':        '_MENU_ par page',
+    'trackers.info':            '_START_–_END_ sur _TOTAL_ trackers',
+    'trackers.count':           'trackers',
+    // Détail tracker
+    'trackers.det_select_all': 'Tout',
+    'trackers.det_close':      'Fermer',
+    'trackers.det_col_name':   'Nom',
+    'trackers.det_col_state':  'État',
+    'trackers.det_col_actions':'Actions',
+    'trackers.det_selected':   'sélectionné(s)',
+    // Actions trackers
+    'trackers.action_details': 'Voir les torrents',
+    'trackers.action_replace': 'Utiliser dans Remplacer',
+    'trackers.action_delete':  'Supprimer ce tracker',
+    'trackers.action_resume':  'Démarrer',
+    'trackers.action_pause':   'Pause',
+    'trackers.action_recheck': 'Vérifier',
+    'trackers.action_del_t':   'Supprimer',
+    // Opérations en masse
+    'trackers.bulk_title':        'Opérations en masse',
+    'trackers.tab_replace':       'Remplacer',
+    'trackers.tab_add':           'Ajouter',
+    'trackers.tab_remove':        'Supprimer',
+    'trackers.replace_desc':      'Pour chaque torrent utilisant l\'Ancienne URL, ajouter la Nouvelle URL puis supprimer l\'Ancienne URL.',
+    'trackers.replace_old_label': 'Ancienne URL du Tracker',
+    'trackers.replace_new_label': 'Nouvelle URL du Tracker',
+    'trackers.replace_btn':       'Remplacer le Tracker',
+    'trackers.add_desc':          'Ajouter l\'URL du tracker à tous les torrents de la bibliothèque.',
+    'trackers.add_label':         'URL du Tracker à Ajouter',
+    'trackers.add_btn':           'Ajouter à Tous les Torrents',
+    'trackers.remove_desc':       'Supprimer l\'URL du tracker de chaque torrent qui l\'utilise actuellement.',
+    'trackers.remove_label':      'URL du Tracker à Supprimer',
+    'trackers.remove_btn':        'Supprimer des Torrents',
+    'trackers.results_clear':     'Effacer',
+    'trackers.processing':        'En cours…',
+    // Validation / toasts trackers
+    'trackers.old_url_required': 'L\'ancienne URL du tracker est requise.',
+    'trackers.new_url_required': 'La nouvelle URL du tracker est requise.',
+    'trackers.urls_identical':   'Les URLs ancienne et nouvelle sont identiques.',
+    'trackers.url_required':     'L\'URL du tracker est requise.',
+    'trackers.no_selection':     'Aucun torrent sélectionné.',
+    'trackers.deleting':         'tracker(s) en cours de suppression…',
+    'trackers.delete_failed':    'Échec de la suppression',
+    'trackers.network_error':    'Erreur réseau : ',
+    'trackers.done':             'suppression(s)',
+    'trackers.errors_count':     'erreur(s)',
+    'trackers.selected_count':   'sélectionné(s)',
+    'trackers.confirm_delete_one':  'Supprimer le tracker :\n',
+    'trackers.confirm_delete_many': 'Supprimer {n} trackers de tous les torrents ?',
+    'trackers.confirm_torrents':    'Supprimer {n} torrent(s) ?',
+    'trackers.applied':             'appliqué à',
+    'trackers.t_action':            'torrent(s).',
+    'trackers.done_summary':        'Terminé — ',
+    'trackers.ok':                  'ok',
+    'trackers.failed_op':           'échec(s)',
+  },
+  en: {
+    // Navbar
+    'nav.logout': 'Logout',
+    'nav.lang':   'FR',
+    // Login
+    'login.subtitle':    'Connect to your qBittorrent instance',
+    'login.server_url':  'Server URL',
+    'login.server_hint': 'Include the protocol and port, e.g.',
+    'login.username':    'Username',
+    'login.password':    'Password',
+    'login.connect':     'Connect',
+    'login.disclaimer':  'Credentials are stored only in the server-side session and never persisted.',
+    // Torrents toolbar
+    'torrents.bulk_actions': 'Bulk actions:',
+    'torrents.select_all':   'Select All (page)',
+    'torrents.deselect_all': 'Deselect All',
+    'torrents.pause':        'Pause',
+    'torrents.resume':       'Resume',
+    'torrents.recheck':      'Recheck',
+    'torrents.delete':       'Delete',
+    'torrents.refresh':      'Refresh',
+    // Columns
+    'col.name':    'Name',
+    'col.size':    'Size',
+    'col.progress':'Progress',
+    'col.state':   'State',
+    'col.seeds':   'Seeds',
+    'col.peers':   'Peers',
+    'col.down':    'Down',
+    'col.up':      'Up',
+    'col.ratio':   'Ratio',
+    'col.actions': 'Actions',
+    // States
+    'state.uploading':          'Seeding',
+    'state.forcedUP':           'Forced↑',
+    'state.pausedUP':           'Paused',
+    'state.pausedDL':           'Paused',
+    'state.stalledUP':          'Seed (idle)',
+    'state.stalledDL':          'Stalled',
+    'state.downloading':        'Downloading',
+    'state.checkingUP':         'Checking',
+    'state.checkingDL':         'Checking',
+    'state.checkingResumeData': 'Checking',
+    'state.queuedUP':           'Queued',
+    'state.queuedDL':           'Queued',
+    'state.allocating':         'Allocating',
+    'state.moving':             'Moving',
+    'state.metaDL':             'Meta DL',
+    'state.forcedDL':           'Forced↓',
+    'state.error':              'Error',
+    'state.missingFiles':       'Missing',
+    // DataTables
+    'dt.search_placeholder': 'Filter torrents…',
+    'dt.processing':         'Loading…',
+    'dt.empty':              'No torrents',
+    'dt.no_match':           'No matching torrents',
+    'dt.per_page':           '_MENU_ per page',
+    'dt.info':               '_START_–_END_ of _TOTAL_',
+    // Detail panel
+    'detail.title':        'Torrent Details',
+    'detail.size':         'Size',
+    'detail.download':     'Download',
+    'detail.upload':       'Upload',
+    'detail.ratio':        'Ratio',
+    'detail.added_on':     'Added on',
+    'detail.completed_on': 'Completed on',
+    'detail.created_by':   'Created by',
+    'detail.created_on':   'Created on',
+    'detail.save_path':    'Save path',
+    'detail.hash':         'Hash',
+    // Actions
+    'action.resume':        'Resume',
+    'action.pause':         'Pause',
+    'action.recheck':       'Recheck',
+    'action.delete':        'Delete',
+    'action.start_title':   'Start/Resume',
+    'action.pause_title':   'Pause/Stop',
+    'action.recheck_title': 'Recheck',
+    'action.delete_title':  'Delete',
+    // Delete modal
+    'modal.delete_title':   'Delete Torrents',
+    'modal.delete_one':     'Delete this torrent?',
+    'modal.delete_many':    'Delete {n} torrents?',
+    'modal.delete_files':   'Also delete files from disk',
+    'modal.cancel':         'Cancel',
+    'modal.confirm_delete': 'Delete',
+    // Messages
+    'toast.no_selection':    'No torrents selected.',
+    'toast.failed_load':     'Failed to load: ',
+    'toast.action_applied':  'Action applied.',
+    'toast.failed':          'Failed',
+    'toast.loading_server':  'Loading from server…',
+    'toast.loaded_torrents': 'torrents loaded…',
+    'toast.connecting':      'Connecting to qBittorrent…',
+    'toast.deleted':         'deleted.',
+    'toast.count_action':    'torrent(s)',
+    // Trackers
+    'trackers.title':           'Tracker Management',
+    'trackers.refresh':         'Refresh',
+    'trackers.perf_note':       'Performance note:',
+    'trackers.perf_text':       'Loading trackers requires one API call per torrent. This may take a while on large libraries. The page fetches data lazily — click Refresh or wait for auto-load.',
+    'trackers.overview':        'Global Tracker Overview',
+    'trackers.select_all':      'Select All',
+    'trackers.deselect_all':    'Deselect',
+    'trackers.delete_selected': 'Delete Selected',
+    'trackers.col_url':         'Tracker URL',
+    'trackers.col_torrents':    'Torrents',
+    'trackers.col_status':      'Status',
+    'trackers.col_actions':     'Actions',
+    'trackers.fetching':        'Fetching trackers for all torrents…',
+    'trackers.load_failed':     'Load failed — click Refresh to retry.',
+    'trackers.empty':           'No trackers found',
+    'trackers.no_match':        'No matching trackers',
+    'trackers.search':          '🔍  Search a tracker…',
+    'trackers.per_page':        '_MENU_ per page',
+    'trackers.info':            '_START_–_END_ of _TOTAL_ trackers',
+    'trackers.count':           'trackers',
+    // Tracker detail
+    'trackers.det_select_all':  'All',
+    'trackers.det_close':       'Close',
+    'trackers.det_col_name':    'Name',
+    'trackers.det_col_state':   'State',
+    'trackers.det_col_actions': 'Actions',
+    'trackers.det_selected':    'selected',
+    // Tracker actions
+    'trackers.action_details': 'View torrents',
+    'trackers.action_replace': 'Use in Replace',
+    'trackers.action_delete':  'Delete this tracker',
+    'trackers.action_resume':  'Start',
+    'trackers.action_pause':   'Pause',
+    'trackers.action_recheck': 'Recheck',
+    'trackers.action_del_t':   'Delete',
+    // Bulk ops
+    'trackers.bulk_title':        'Bulk Operations',
+    'trackers.tab_replace':       'Replace',
+    'trackers.tab_add':           'Add',
+    'trackers.tab_remove':        'Remove',
+    'trackers.replace_desc':      'For every torrent that uses Old URL, add New URL then remove Old URL.',
+    'trackers.replace_old_label': 'Old Tracker URL',
+    'trackers.replace_new_label': 'New Tracker URL',
+    'trackers.replace_btn':       'Replace Tracker',
+    'trackers.add_desc':          'Add the tracker URL to every torrent in the library.',
+    'trackers.add_label':         'Tracker URL to Add',
+    'trackers.add_btn':           'Add to All Torrents',
+    'trackers.remove_desc':       'Remove the tracker URL from every torrent that currently uses it.',
+    'trackers.remove_label':      'Tracker URL to Remove',
+    'trackers.remove_btn':        'Remove from Torrents',
+    'trackers.results_clear':     'Clear',
+    'trackers.processing':        'Working…',
+    // Validation / toasts
+    'trackers.old_url_required': 'Old tracker URL is required.',
+    'trackers.new_url_required': 'New tracker URL is required.',
+    'trackers.urls_identical':   'Old and new URLs are identical.',
+    'trackers.url_required':     'Tracker URL is required.',
+    'trackers.no_selection':     'No torrent selected.',
+    'trackers.deleting':         'tracker(s) being deleted…',
+    'trackers.delete_failed':    'Deletion failed',
+    'trackers.network_error':    'Network error: ',
+    'trackers.done':             'removal(s)',
+    'trackers.errors_count':     'error(s)',
+    'trackers.selected_count':   'selected',
+    'trackers.confirm_delete_one':  'Delete tracker:\n',
+    'trackers.confirm_delete_many': 'Delete {n} trackers from all torrents?',
+    'trackers.confirm_torrents':    'Delete {n} torrent(s)?',
+    'trackers.applied':             'applied to',
+    'trackers.t_action':            'torrent(s).',
+    'trackers.done_summary':        'Done — ',
+    'trackers.ok':                  'ok',
+    'trackers.failed_op':           'failed',
+  },
+};
+
+// Langue courante (FR par défaut)
+let currentLang = localStorage.getItem('qbm-lang') || 'fr';
+
+// Fonction de traduction principale
+function __(key, vars) {
+  const val = (TRANSLATIONS[currentLang] && TRANSLATIONS[currentLang][key])
+           || (TRANSLATIONS['fr'] && TRANSLATIONS['fr'][key])
+           || key;
+  if (!vars) return val;
+  return val.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
+}
+
+// Applique les traductions sur les éléments data-i18n du DOM
+function applyTranslations() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = __(el.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.placeholder = __(el.dataset.i18nPlaceholder);
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    el.title = __(el.dataset.i18nTitle);
+  });
+  // Bouton de langue
+  const btnLang = document.getElementById('btn-lang');
+  if (btnLang) btnLang.textContent = __('nav.lang');
+}
+
+// Bascule de langue
+document.addEventListener('DOMContentLoaded', () => {
+  applyTranslations();
+  const btnLang = document.getElementById('btn-lang');
+  if (btnLang) {
+    btnLang.addEventListener('click', () => {
+      localStorage.setItem('qbm-lang', currentLang === 'fr' ? 'en' : 'fr');
+      location.reload();
+    });
+  }
+});
+
+// ── Toast ────────────────────────────────────────────────────────────────────
 function showToast(message, type = 'info') {
   const container = document.getElementById('toast-container');
   const id = 'toast-' + Date.now();

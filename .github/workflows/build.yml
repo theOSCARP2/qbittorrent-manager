@@ -67,9 +67,38 @@ jobs:
           name: linux
           path: dist/qbittorrent-manager
 
+  build-macos:
+    name: macOS (binaire)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installer les dépendances
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build
+        run: >
+          pyinstaller
+          --onefile
+          --name qbittorrent-manager
+          --add-data "templates:templates"
+          app.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: dist/qbittorrent-manager
+
   release:
     name: Créer la release
-    needs: [build-windows, build-linux]
+    needs: [build-windows, build-linux, build-macos]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -83,4 +112,5 @@ jobs:
           files: |
             windows/qbittorrent-manager.exe
             linux/qbittorrent-manager
+            macos/qbittorrent-manager
           generate_release_notes: true

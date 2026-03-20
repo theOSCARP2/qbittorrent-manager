@@ -41,6 +41,10 @@ Au premier lancement, une clé secrète unique est automatiquement générée et
 |---|---|
 | `SECRET_KEY` | Surcharge la clé générée automatiquement (usage serveur, Docker, etc.) |
 
+## Crédits
+
+Développé avec l'aide de [Claude](https://claude.ai) (Anthropic).
+
 ## Notes
 
 - Compatible avec qBittorrent v5+ (endpoints `/api/v2/torrents/stop` et `start`)

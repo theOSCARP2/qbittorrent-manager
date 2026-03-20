@@ -89,7 +89,8 @@ app.secret_key = _get_secret_key()
 # Helpers
 # ---------------------------------------------------------------------------
 _TORRENT_FIELDS = {"hash", "name", "size", "progress", "state",
-                   "num_seeds", "num_leechs", "dlspeed", "upspeed"}
+                   "num_seeds", "num_leechs", "dlspeed", "upspeed",
+                   "added_on", "completion_on", "save_path", "ratio"}
 
 # Columns sortable server-side: DataTables column index → torrent field
 _SORT_COLS = {
@@ -100,6 +101,7 @@ _SORT_COLS = {
     6: "num_leechs",
     7: "dlspeed",
     8: "upspeed",
+    9: "ratio",
 }
 
 
@@ -381,6 +383,20 @@ def api_trackers():
             continue
 
     return jsonify(tracker_map)
+
+
+@app.route("/api/torrent/properties")
+def api_torrent_properties():
+    if not is_logged_in():
+        return jsonify({"error": "Not authenticated"}), 401
+    hash_ = request.args.get("hash", "").strip()
+    if not hash_:
+        return jsonify({"error": "Missing hash"}), 400
+    try:
+        resp = qb_request(session, "GET", f"/api/v2/torrents/properties?hash={hash_}")
+        return jsonify(resp.json())
+    except RuntimeError as exc:
+        return jsonify({"error": str(exc)}), 502
 
 
 @app.route("/api/torrent/action", methods=["POST"])

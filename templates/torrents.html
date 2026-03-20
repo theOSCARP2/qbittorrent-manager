@@ -7,6 +7,17 @@
   .state-badge { font-size: .68rem; text-transform: uppercase; letter-spacing: .4px; padding: .2em .55em; }
   #loading-bar { height: 3px; background: linear-gradient(90deg,#1f6feb 40%,transparent 100%); animation: slide 1.2s infinite; }
   @keyframes slide { from{background-position:-200px} to{background-position:200px} }
+
+  /* Split view */
+  #table-col, #detail-col { transition: all .2s ease; }
+  #torrents-table tbody tr { cursor: pointer; }
+  #torrents-table tbody tr.selected-row td { background-color: rgba(88,166,255,.13) !important; }
+
+  /* Detail panel */
+  #detail-col .card { position: sticky; top: 72px; }
+  .detail-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .5px; color: #8b949e; }
+  .detail-value { font-size: .9rem; color: #c9d1d9; }
+  .detail-hash  { font-size: .72rem; font-family: monospace; word-break: break-all; color: #8b949e; }
 </style>
 {% endblock %}
 
@@ -24,7 +35,7 @@
   </div>
 </div>
 
-<!-- Loading bar (shown while cache populates) -->
+<!-- Loading bar -->
 <div id="loading-bar" class="mb-2 rounded" style="display:none;"></div>
 
 <!-- Bulk toolbar -->
@@ -48,30 +59,54 @@
   </div>
 </div>
 
-<!-- Torrents table -->
-<div class="card">
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table id="torrents-table" class="table table-hover table-striped align-middle mb-0" style="width:100%">
-        <thead class="table-dark">
-          <tr>
-            <th style="width:36px;"><input type="checkbox" class="form-check-input" id="chk-header" /></th>
-            <th>Name</th>
-            <th>Size</th>
-            <th>Progress</th>
-            <th>State</th>
-            <th>Seeds</th>
-            <th>Peers</th>
-            <th>Down</th>
-            <th>Up</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+<!-- Split view row -->
+<div class="row g-3" id="main-row">
+
+  <!-- Table column -->
+  <div class="col-12" id="table-col">
+    <div class="card">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table id="torrents-table" class="table table-hover table-striped align-middle mb-0" style="width:100%">
+            <thead class="table-dark">
+              <tr>
+                <th style="width:36px;"><input type="checkbox" class="form-check-input" id="chk-header" /></th>
+                <th>Name</th>
+                <th>Size</th>
+                <th>Progress</th>
+                <th>State</th>
+                <th>Seeds</th>
+                <th>Peers</th>
+                <th>Down</th>
+                <th>Up</th>
+                <th>Ratio</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
-</div>
+
+  <!-- Detail panel column (hidden by default) -->
+  <div class="col-12 col-xl-5 d-none" id="detail-col">
+    <div class="card">
+      <div class="card-header border-secondary d-flex align-items-center justify-content-between">
+        <span class="fw-semibold text-white" style="font-size:.9rem;">
+          <i class="bi bi-info-circle me-2 text-primary"></i>Détails du torrent
+        </span>
+        <button class="btn btn-sm btn-outline-secondary" id="btn-close-detail" title="Fermer">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+      <div class="card-body" id="detail-body">
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main-row -->
 
 <!-- Delete modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1">
@@ -114,6 +149,10 @@ function fmtSpeed(b) {
 function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+function fmtDate(ts) {
+  if (!ts || ts <= 0) return '—';
+  return new Date(ts * 1000).toLocaleString();
+}
 
 const STATE_MAP = {
   error:'bg-danger', missingFiles:'bg-danger',
@@ -137,7 +176,6 @@ const STATE_LABELS = {
 
 function renderRow(t) {
   const pct     = Math.round((t.progress||0)*100);
-  const isPaused = (t.state||'').includes('paused');
   const cls     = STATE_MAP[t.state] || 'bg-secondary';
   const label   = STATE_LABELS[t.state] || t.state || '?';
   const pbCls   = pct>=100 ? 'bg-success' : pct>=50 ? 'bg-primary' : 'bg-warning';
@@ -157,6 +195,7 @@ function renderRow(t) {
     t.num_leechs ?? '—',
     `<span data-order="${t.dlspeed||0}">${fmtSpeed(t.dlspeed)}</span>`,
     `<span data-order="${t.upspeed||0}">${fmtSpeed(t.upspeed)}</span>`,
+    `<span data-order="${t.ratio||0}">${t.ratio != null ? t.ratio.toFixed(3) : '—'}</span>`,
     `<div class="d-flex gap-1">
       <button class="btn btn-sm btn-outline-success action-btn" onclick="torrentAction('resume','${t.hash}')" title="Start/Resume"><i class="bi bi-play-fill"></i></button>
       <button class="btn btn-sm btn-outline-warning action-btn" onclick="torrentAction('pause','${t.hash}')"  title="Pause/Stop"><i class="bi bi-pause-fill"></i></button>
@@ -166,6 +205,10 @@ function renderRow(t) {
   ];
 }
 
+// ── Torrent data cache (raw) ─────────────────────────────────────────────────
+const torrentDataMap = {};
+let currentDetailHash = null;
+
 // ── DataTable (server-side) ──────────────────────────────────────────────────
 let dt;
 let pollTimer = null;
@@ -174,12 +217,12 @@ function initTable() {
   dt = $('#torrents-table').DataTable({
     serverSide: true,
     processing: true,
-    ajax: function(dtParams, callback, settings) {
+    ajax: function(dtParams, callback) {
       const params = new URLSearchParams({
-        draw:              dtParams.draw,
-        start:             dtParams.start,
-        length:            dtParams.length,
-        'search[value]':   dtParams.search.value,
+        draw:               dtParams.draw,
+        start:              dtParams.start,
+        length:             dtParams.length,
+        'search[value]':    dtParams.search.value,
         'order[0][column]': dtParams.order[0].column,
         'order[0][dir]':    dtParams.order[0].dir,
       });
@@ -194,6 +237,15 @@ function initTable() {
           }
           document.getElementById('loading-bar').style.display = 'none';
           document.getElementById('cache-status').textContent = '';
+
+          // Stocker les données brutes pour le panneau détail
+          (json.data || []).forEach(t => torrentDataMap[t.hash] = t);
+
+          // Mettre à jour le panneau si le torrent affiché est dans ce batch
+          if (currentDetailHash && torrentDataMap[currentDetailHash]) {
+            renderDetailPanel(torrentDataMap[currentDetailHash]);
+          }
+
           callback({
             draw: json.draw,
             recordsTotal: json.recordsTotal,
@@ -216,6 +268,7 @@ function initTable() {
       { title: 'Peers',    type: 'num' },
       { title: 'Down',     type: 'num' },
       { title: 'Up',       type: 'num' },
+      { title: 'Ratio',    type: 'num' },
       { title: 'Actions',  orderable: false, searchable: false },
     ],
     order: [[1, 'asc']],
@@ -230,6 +283,14 @@ function initTable() {
       lengthMenu: '_MENU_ per page',
       info: '_START_–_END_ of _TOTAL_',
     },
+  });
+
+  // Réappliquer la surbrillance après chaque redraw
+  dt.on('draw.dt', () => {
+    if (currentDetailHash) {
+      const chk = document.querySelector(`.row-chk[data-hash="${currentDetailHash}"]`);
+      if (chk) chk.closest('tr').classList.add('selected-row');
+    }
   });
 }
 
@@ -250,6 +311,155 @@ function schedulePoll() {
     });
   }, 1500);
 }
+
+// ── Detail panel ─────────────────────────────────────────────────────────────
+function renderDetailPanel(t, props) {
+  const pct   = Math.round((t.progress || 0) * 100);
+  const cls   = STATE_MAP[t.state] || 'bg-secondary';
+  const label = STATE_LABELS[t.state] || t.state || '?';
+  const pbCls = pct >= 100 ? 'bg-success' : pct >= 50 ? 'bg-primary' : 'bg-warning';
+
+  const createdBy   = props ? (props.created_by  || '—') : '…';
+  const createdOn   = props ? fmtDate(props.creation_date) : '…';
+
+  document.getElementById('detail-body').innerHTML = `
+    <!-- Nom -->
+    <p class="fw-semibold text-white mb-3" style="font-size:.9rem;word-break:break-word;">${escHtml(t.name || '—')}</p>
+
+    <!-- État + progression -->
+    <div class="mb-3">
+      <div class="d-flex align-items-center justify-content-between mb-1">
+        <span class="badge state-badge ${cls}">${label}</span>
+        <small class="text-secondary">${pct}%</small>
+      </div>
+      <div class="progress" style="height:6px;">
+        <div class="progress-bar ${pbCls}" style="width:${pct}%"></div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="row g-2 mb-3">
+      <div class="col-6">
+        <div class="detail-label">Taille</div>
+        <div class="detail-value">${fmtSize(t.size)}</div>
+      </div>
+      <div class="col-6">
+        <div class="detail-label">Seeds</div>
+        <div class="detail-value">${t.num_seeds ?? '—'}</div>
+      </div>
+      <div class="col-6">
+        <div class="detail-label">Peers</div>
+        <div class="detail-value">${t.num_leechs ?? '—'}</div>
+      </div>
+      <div class="col-6">
+        <div class="detail-label">Téléchargement</div>
+        <div class="detail-value">${fmtSpeed(t.dlspeed)}</div>
+      </div>
+      <div class="col-6">
+        <div class="detail-label">Upload</div>
+        <div class="detail-value">${fmtSpeed(t.upspeed)}</div>
+      </div>
+      <div class="col-6">
+        <div class="detail-label">Ratio</div>
+        <div class="detail-value">${t.ratio != null ? t.ratio.toFixed(3) : '—'}</div>
+      </div>
+      <div class="col-6">
+        <div class="detail-label">Ajouté le</div>
+        <div class="detail-value">${fmtDate(t.added_on)}</div>
+      </div>
+      <div class="col-6">
+        <div class="detail-label">Complété le</div>
+        <div class="detail-value">${fmtDate(t.completion_on)}</div>
+      </div>
+      <div class="col-6">
+        <div class="detail-label">Créé par</div>
+        <div class="detail-value">${escHtml(createdBy)}</div>
+      </div>
+      <div class="col-6">
+        <div class="detail-label">Créé le</div>
+        <div class="detail-value">${createdOn}</div>
+      </div>
+      <div class="col-12">
+        <div class="detail-label">Répertoire de destination</div>
+        <div class="detail-value" style="word-break:break-all;font-size:.82rem;">${escHtml(t.save_path || '—')}</div>
+      </div>
+    </div>
+
+    <!-- Hash -->
+    <div class="mb-3">
+      <div class="detail-label mb-1">Hash</div>
+      <div class="detail-hash">${escHtml(t.hash || '—')}</div>
+    </div>
+
+    <!-- Actions -->
+    <div class="d-flex gap-2 flex-wrap">
+      <button class="btn btn-sm btn-outline-success" onclick="torrentAction('resume','${t.hash}')">
+        <i class="bi bi-play-fill me-1"></i>Resume
+      </button>
+      <button class="btn btn-sm btn-outline-warning" onclick="torrentAction('pause','${t.hash}')">
+        <i class="bi bi-pause-fill me-1"></i>Pause
+      </button>
+      <button class="btn btn-sm btn-outline-info" onclick="torrentAction('recheck','${t.hash}')">
+        <i class="bi bi-arrow-repeat me-1"></i>Recheck
+      </button>
+      <button class="btn btn-sm btn-outline-danger" onclick="openDeleteModal(['${t.hash}'])">
+        <i class="bi bi-trash me-1"></i>Delete
+      </button>
+    </div>
+  `;
+}
+
+async function openDetailPanel(hash) {
+  const t = torrentDataMap[hash];
+  if (!t) return;
+
+  currentDetailHash = hash;
+
+  // Affichage immédiat avec les données disponibles (props en cours de chargement)
+  renderDetailPanel(t, null);
+
+  // Surbrillance de la ligne
+  document.querySelectorAll('#torrents-table tbody tr').forEach(r => r.classList.remove('selected-row'));
+  const chk = document.querySelector(`.row-chk[data-hash="${hash}"]`);
+  if (chk) chk.closest('tr').classList.add('selected-row');
+
+  // Réduire le tableau, afficher le panneau
+  document.getElementById('table-col').className = 'col-12 col-xl-7';
+  document.getElementById('detail-col').classList.remove('d-none');
+
+  // Fetch des propriétés supplémentaires (created_by, creation_date)
+  try {
+    const resp = await fetch(`/api/torrent/properties?hash=${hash}`);
+    const props = await resp.json();
+    if (!props.error && currentDetailHash === hash) {
+      renderDetailPanel(t, props);
+    }
+  } catch (_) {}
+}
+
+function closeDetailPanel() {
+  currentDetailHash = null;
+  document.getElementById('detail-col').classList.add('d-none');
+  document.getElementById('table-col').className = 'col-12';
+  document.querySelectorAll('#torrents-table tbody tr').forEach(r => r.classList.remove('selected-row'));
+}
+
+document.getElementById('btn-close-detail').addEventListener('click', closeDetailPanel);
+
+// Clic sur une ligne du tableau
+document.getElementById('torrents-table').addEventListener('click', e => {
+  if (e.target.closest('input[type="checkbox"]') || e.target.closest('button')) return;
+  const row = e.target.closest('tr');
+  if (!row) return;
+  const chk = row.querySelector('.row-chk');
+  if (!chk) return;
+  const hash = chk.dataset.hash;
+  if (hash === currentDetailHash) {
+    closeDetailPanel();  // deuxième clic sur la même ligne = fermer
+  } else {
+    openDetailPanel(hash);
+  }
+});
 
 // ── Actions ──────────────────────────────────────────────────────────────────
 async function torrentAction(action, hash, deleteFiles=false) {
@@ -321,8 +531,11 @@ document.getElementById('btn-confirm-delete').addEventListener('click', async ()
   const resp = await fetch('/api/torrent/action', {method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({action:'delete', hashes:pendingDeleteHashes, deleteFiles})});
   const data = await resp.json();
-  if (data.ok) { showToast(`${data.count} deleted.`, 'success'); setTimeout(()=>dt.ajax.reload(null,false), 500); }
-  else showToast(data.error || 'Failed', 'danger');
+  if (data.ok) {
+    if (pendingDeleteHashes.includes(currentDetailHash)) closeDetailPanel();
+    showToast(`${data.count} deleted.`, 'success');
+    setTimeout(()=>dt.ajax.reload(null,false), 500);
+  } else showToast(data.error || 'Failed', 'danger');
 });
 
 // ── Init ─────────────────────────────────────────────────────────────────────

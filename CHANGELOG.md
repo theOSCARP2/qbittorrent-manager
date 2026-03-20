@@ -10,34 +10,51 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 ### Ajouté
 - Interface multilingue FR/EN avec bouton de bascule dans la barre de navigation
 - Préférence de langue sauvegardée dans le navigateur (localStorage)
+- Fichier `CHANGELOG.md` et injection automatique dans les releases GitHub
 
 ### Modifié
-- État `stalledUP` affiché en vert avec le label "Seed (inactif)" au lieu de "Bloqué" en jaune
+- État `stalledUP` affiché en vert "Seed (inactif)" au lieu de jaune "Bloqué"
 
 ---
 
-## [1.3.0] - 2026-03-15
+## [1.3.1] - 2026-03-14
+
+### Corrigé
+- Les binaires Linux et macOS avaient le même nom, ce qui empêchait l'affichage du binaire macOS dans les releases GitHub
+
+---
+
+## [1.3.0] - 2026-03-13
 
 ### Ajouté
-- Panneau détail latéral : clic sur un torrent pour afficher toutes ses informations
-- Champs supplémentaires dans le panneau : date d'ajout, date de complétion, créé par, créé le, répertoire de destination
-- Colonne Ratio dans le tableau et dans le panneau détail
-- Build macOS (binaire universel) dans la CI
-
-### Modifié
-- Les binaires Linux et macOS ont désormais des noms distincts (`qbittorrent-manager-linux`, `qbittorrent-manager-macos`)
+- Serveur de production **Waitress** en remplacement du serveur de développement Flask
+- Variable d'environnement `FLASK_DEBUG` pour activer le mode développement avec hot-reload
 
 ---
 
 ## [1.2.0] - 2026-03-10
 
 ### Ajouté
-- Serveur de production **Waitress** (remplace le serveur de développement Flask)
-- Clé secrète auto-générée et persistée dans `~/.qbittorrent-manager/secret.key`
-- Variable d'environnement `FLASK_DEBUG` pour le mode développement
+- Panneau détail latéral : clic sur un torrent pour afficher toutes ses informations (taille, vitesses, ratio, dates, répertoire, hash)
+- Colonne Ratio dans le tableau des torrents
+- Build macOS dans le pipeline CI
 
-### Modifié
-- `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` dans la CI pour supprimer les avertissements Node.js 20
+---
+
+## [1.1.0] - 2026-03-08
+
+### Ajouté
+- Clé secrète Flask auto-générée et persistée dans `~/.qbittorrent-manager/secret.key`
+- Variable d'environnement `SECRET_KEY` pour surcharger la clé (usage Docker/serveur)
+- Migration Node.js 24 dans les actions GitHub (`FORCE_JAVASCRIPT_ACTIONS_TO_NODE24`)
+
+---
+
+## [1.0.2] - 2026-03-06
+
+### Corrigé
+- Le bouton "Supprimer sélectionnés" restait grisé après "Tout sélectionner" (correction complète)
+- Erreur `invalid assignment left-hand side` empêchant le chargement de la page Trackers
 
 ---
 
@@ -59,4 +76,4 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 - Opérations en masse sur les trackers : ajouter, remplacer, supprimer
 - Panneau de détail des torrents d'un tracker
 - Cache en arrière-plan rafraîchi toutes les 30 secondes
-- Builds automatiques Windows, Linux et macOS via GitHub Actions
+- Pipeline CI GitHub Actions : builds automatiques Windows et Linux via PyInstaller

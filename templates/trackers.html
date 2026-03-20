@@ -1,0 +1,733 @@
+{% extends "base.html" %}
+{% block title %}Trackers – qBit Manager{% endblock %}
+
+{% block extra_head %}
+<style>
+  .tracker-row { cursor: pointer; }
+  .tracker-row:hover td { background-color: rgba(88,166,255,.07) !important; }
+
+  #details-panel {
+    max-height: 340px;
+    overflow-y: auto;
+  }
+
+  .progress-step {
+    font-size: .82rem;
+    padding: 3px 0;
+    border-bottom: 1px solid #21262d;
+  }
+  .progress-step:last-child { border-bottom: none; }
+
+  #bulk-results {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .result-item {
+    font-size: .82rem;
+    padding: 2px 0;
+  }
+
+  .spinner-inline {
+    width: 1rem;
+    height: 1rem;
+    border-width: 2px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <h4 class="mb-0 fw-bold text-white">
+    <i class="bi bi-broadcast me-2 text-primary"></i>Tracker Management
+  </h4>
+  <button class="btn btn-sm btn-outline-secondary" id="btn-refresh-trackers">
+    <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+  </button>
+</div>
+
+<div class="alert alert-warning d-flex align-items-start gap-2 py-2" role="alert">
+  <i class="bi bi-exclamation-triangle-fill mt-1 flex-shrink-0"></i>
+  <span>
+    <strong>Performance note:</strong>
+    Loading trackers requires one API call per torrent. This may take a while on large libraries.
+    The page fetches data lazily — click <em>Refresh</em> or wait for auto-load.
+  </span>
+</div>
+
+<div class="row g-4">
+
+  <!-- ══════════════════════════════════════════════════
+       Left column – Global tracker overview
+  ══════════════════════════════════════════════════ -->
+  <div class="col-12 col-xl-7">
+    <div class="card h-100">
+      <div class="card-header border-secondary d-flex align-items-center justify-content-between">
+        <span class="fw-semibold text-white">
+          <i class="bi bi-table me-2 text-primary"></i>Vue globale des trackers
+        </span>
+        <span id="tracker-count-badge" class="badge bg-secondary"></span>
+      </div>
+      <div class="card-body p-0">
+
+        <!-- Loading state -->
+        <div id="trackers-loading" class="text-center text-secondary py-5">
+          <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+          Fetching trackers for all torrents…
+        </div>
+
+        <!-- Table (hidden until loaded) -->
+        <div id="trackers-table-wrapper" class="d-none">
+
+          <!-- Bulk delete toolbar -->
+          <div class="px-3 pt-3 pb-2 d-flex align-items-center gap-2 flex-wrap">
+            <button class="btn btn-sm btn-outline-secondary" id="btn-tracker-select-all">
+              <i class="bi bi-check-all me-1"></i>Tout sélectionner
+            </button>
+            <button class="btn btn-sm btn-outline-secondary" id="btn-tracker-deselect-all">
+              <i class="bi bi-x-square me-1"></i>Désélectionner
+            </button>
+            <button class="btn btn-sm btn-outline-danger" id="btn-tracker-delete-selected" disabled>
+              <i class="bi bi-trash me-1"></i>Supprimer sélectionnés
+            </button>
+            <span id="tracker-selected-count" class="text-secondary small"></span>
+          </div>
+
+          <div class="table-responsive">
+            <table id="trackers-table" class="table table-hover table-striped align-middle mb-0"
+                   style="width:100%">
+              <thead class="table-dark">
+                <tr>
+                  <th style="width:36px;"><input type="checkbox" class="form-check-input" id="chk-tracker-header"></th>
+                  <th>Tracker URL</th>
+                  <th style="width:100px;">Torrents</th>
+                  <th style="width:130px;">Statut</th>
+                  <th style="width:100px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="trackers-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Details sub-panel -->
+        <div id="details-container" class="d-none border-top border-secondary">
+          <div class="p-3">
+            <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+              <span class="fw-semibold text-white" id="details-title"></span>
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <!-- Bulk actions on the detail torrents -->
+                <button class="btn btn-xs btn-outline-secondary" id="btn-detail-select-all" style="font-size:.75rem;padding:2px 8px;">
+                  <i class="bi bi-check-all"></i> Tout
+                </button>
+                <button class="btn btn-xs btn-outline-success"  id="btn-detail-resume"  style="font-size:.75rem;padding:2px 8px;" title="Start sélectionnés"><i class="bi bi-play-fill"></i></button>
+                <button class="btn btn-xs btn-outline-warning"  id="btn-detail-pause"   style="font-size:.75rem;padding:2px 8px;" title="Pause sélectionnés"><i class="bi bi-pause-fill"></i></button>
+                <button class="btn btn-xs btn-outline-info"     id="btn-detail-recheck" style="font-size:.75rem;padding:2px 8px;" title="Recheck sélectionnés"><i class="bi bi-arrow-repeat"></i></button>
+                <button class="btn btn-xs btn-outline-danger"   id="btn-detail-delete"  style="font-size:.75rem;padding:2px 8px;" title="Supprimer sélectionnés"><i class="bi bi-trash"></i></button>
+                <span id="detail-selected-count" class="text-secondary" style="font-size:.78rem;"></span>
+                <button class="btn btn-sm btn-outline-secondary" id="btn-close-details"><i class="bi bi-x"></i></button>
+              </div>
+            </div>
+            <div id="details-panel" style="max-height:380px;overflow-y:auto;">
+              <table class="table table-sm table-hover align-middle mb-0">
+                <thead class="table-dark" style="position:sticky;top:0;">
+                  <tr>
+                    <th style="width:32px;"><input type="checkbox" class="form-check-input" id="chk-detail-header"></th>
+                    <th>Nom</th>
+                    <th style="width:130px;">État</th>
+                    <th style="width:110px;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="details-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       Right column – Bulk operations
+  ══════════════════════════════════════════════════ -->
+  <div class="col-12 col-xl-5">
+    <div class="card">
+      <div class="card-header border-secondary">
+        <span class="fw-semibold text-white">
+          <i class="bi bi-gear me-2 text-primary"></i>Opérations en masse
+        </span>
+      </div>
+      <div class="card-body">
+
+        <!-- Operation tabs -->
+        <ul class="nav nav-pills mb-3 gap-1" id="opTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active px-3 py-1" id="tab-replace"
+                    data-bs-toggle="pill" data-bs-target="#pane-replace"
+                    type="button" role="tab">
+              <i class="bi bi-arrow-left-right me-1"></i>Replace
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link px-3 py-1" id="tab-add"
+                    data-bs-toggle="pill" data-bs-target="#pane-add"
+                    type="button" role="tab">
+              <i class="bi bi-plus-lg me-1"></i>Add
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link px-3 py-1" id="tab-remove"
+                    data-bs-toggle="pill" data-bs-target="#pane-remove"
+                    type="button" role="tab">
+              <i class="bi bi-dash-lg me-1"></i>Remove
+            </button>
+          </li>
+        </ul>
+
+        <div class="tab-content">
+
+          <!-- Replace tab -->
+          <div class="tab-pane fade show active" id="pane-replace" role="tabpanel">
+            <p class="text-secondary" style="font-size:.85rem;">
+              For every torrent that uses <em>Old URL</em>, add <em>New URL</em> then remove <em>Old URL</em>.
+            </p>
+            <div class="mb-3">
+              <label class="form-label text-secondary fw-semibold" for="replace-old">
+                Old Tracker URL
+              </label>
+              <input type="url" class="form-control bg-dark border-secondary text-white"
+                     id="replace-old" placeholder="https://old.tracker.example/announce" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-secondary fw-semibold" for="replace-new">
+                New Tracker URL
+              </label>
+              <input type="url" class="form-control bg-dark border-secondary text-white"
+                     id="replace-new" placeholder="https://new.tracker.example/announce" />
+            </div>
+            <button class="btn btn-primary w-100" id="btn-do-replace">
+              <i class="bi bi-arrow-left-right me-2"></i>Replace Tracker
+            </button>
+          </div>
+
+          <!-- Add tab -->
+          <div class="tab-pane fade" id="pane-add" role="tabpanel">
+            <p class="text-secondary" style="font-size:.85rem;">
+              Add the tracker URL to <strong>every</strong> torrent in the library.
+            </p>
+            <div class="mb-3">
+              <label class="form-label text-secondary fw-semibold" for="add-url">
+                Tracker URL to Add
+              </label>
+              <input type="url" class="form-control bg-dark border-secondary text-white"
+                     id="add-url" placeholder="https://tracker.example/announce" />
+            </div>
+            <button class="btn btn-success w-100" id="btn-do-add">
+              <i class="bi bi-plus-lg me-2"></i>Add to All Torrents
+            </button>
+          </div>
+
+          <!-- Remove tab -->
+          <div class="tab-pane fade" id="pane-remove" role="tabpanel">
+            <p class="text-secondary" style="font-size:.85rem;">
+              Remove the tracker URL from every torrent that currently uses it.
+            </p>
+            <div class="mb-3">
+              <label class="form-label text-secondary fw-semibold" for="remove-url">
+                Tracker URL to Remove
+              </label>
+              <input type="url" class="form-control bg-dark border-secondary text-white"
+                     id="remove-url" placeholder="https://old.tracker.example/announce" />
+            </div>
+            <button class="btn btn-danger w-100" id="btn-do-remove">
+              <i class="bi bi-dash-lg me-2"></i>Remove from Torrents
+            </button>
+          </div>
+
+        </div><!-- /tab-content -->
+
+        <!-- Results area -->
+        <div id="bulk-results-wrapper" class="mt-4 d-none">
+          <hr class="border-secondary" />
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="fw-semibold text-white" id="bulk-summary"></span>
+            <button class="btn btn-sm btn-outline-secondary" id="btn-clear-results">
+              <i class="bi bi-x"></i> Clear
+            </button>
+          </div>
+          <div id="bulk-results" class="border border-secondary rounded p-2"></div>
+        </div>
+
+      </div><!-- /card-body -->
+    </div><!-- /card -->
+  </div><!-- /col -->
+
+</div><!-- /row -->
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// ─── Tracker data ────────────────────────────────────────────────────────────
+
+let trackerMap = {};   // url -> { torrents, ok, error, pending }
+let dtTrackers;
+
+// Sort key for status: more errors = worse (higher = worse for sorting asc)
+function statusSortKey(row) {
+  if (row.error > 0 && row.ok === 0) return 3;  // all errors
+  if (row.error > 0) return 2;                   // mixed
+  if (row.ok > 0)    return 0;                   // all working
+  return 1;                                       // pending/unknown
+}
+
+function renderStatusBadges(row, type) {
+  if (type !== 'display') return statusSortKey(row);
+  const parts = [];
+  if (row.ok)      parts.push(`<span class="badge bg-success me-1"><i class="bi bi-check-lg me-1"></i>${row.ok}</span>`);
+  if (row.error)   parts.push(`<span class="badge bg-danger me-1"><i class="bi bi-x-lg me-1"></i>${row.error}</span>`);
+  if (row.pending) parts.push(`<span class="badge bg-secondary"><i class="bi bi-hourglass-split me-1"></i>${row.pending}</span>`);
+  return parts.join('') || '<span class="badge bg-secondary">—</span>';
+}
+
+async function loadTrackers() {
+  document.getElementById('trackers-loading').classList.remove('d-none');
+  document.getElementById('trackers-table-wrapper').classList.add('d-none');
+  document.getElementById('details-container').classList.add('d-none');
+  document.getElementById('tracker-count-badge').textContent = '';
+
+  try {
+    const resp = await fetch('/api/trackers');
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      showToast(err.error || 'Failed to load trackers', 'danger');
+      document.getElementById('trackers-loading').innerHTML =
+        '<span class="text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Load failed — click Refresh to retry.</span>';
+      return;
+    }
+    trackerMap = await resp.json();
+  } catch (e) {
+    showToast('Network error: ' + e.message, 'danger');
+    document.getElementById('trackers-loading').innerHTML =
+      '<span class="text-danger"><i class="bi bi-exclamation-triangle me-2"></i>' + e.message + '</span>';
+    return;
+  }
+
+  document.getElementById('trackers-loading').classList.add('d-none');
+  document.getElementById('trackers-table-wrapper').classList.remove('d-none');
+
+  const entries = Object.entries(trackerMap);
+  document.getElementById('tracker-count-badge').textContent = entries.length + ' trackers';
+
+  const rows = entries.map(([url, info]) => ({
+    url,
+    count:   info.torrents.length,
+    ok:      info.ok,
+    error:   info.error,
+    pending: info.pending,
+  }));
+
+  if (dtTrackers) {
+    dtTrackers.clear().rows.add(rows).draw();
+  } else {
+    dtTrackers = $('#trackers-table').DataTable({
+      data: rows,
+      columns: [
+        {
+          title: '',
+          data: 'url',
+          orderable: false,
+          searchable: false,
+          render: (url) => `<input type="checkbox" class="form-check-input tracker-chk" data-url="${escHtml(url)}">`,
+        },
+        {
+          title: 'Tracker URL',
+          data: 'url',
+          render: (url, type) => type === 'display'
+            ? `<span class="text-break font-monospace" style="font-size:.82rem;">${escHtml(url)}</span>`
+            : url,
+        },
+        {
+          title: 'Torrents',
+          data: 'count',
+          type: 'num',
+          render: (n, type) => type === 'display'
+            ? `<span class="badge bg-primary">${n}</span>`
+            : n,
+        },
+        {
+          title: 'Statut',
+          data: null,
+          type: 'num',
+          render: (row, type) => renderStatusBadges(row, type),
+        },
+        {
+          title: 'Actions',
+          data: 'url',
+          orderable: false,
+          searchable: false,
+          render: (url) => {
+            const u = escHtml(url);
+            return `<div class="d-flex gap-1" data-url="${u}">
+              <button class="btn btn-sm btn-outline-info"      data-action="details"  title="Voir les torrents"><i class="bi bi-info-circle"></i></button>
+              <button class="btn btn-sm btn-outline-secondary" data-action="replace"  title="Utiliser dans Replace"><i class="bi bi-arrow-left-right"></i></button>
+              <button class="btn btn-sm btn-outline-danger"    data-action="delete"   title="Supprimer ce tracker"><i class="bi bi-trash"></i></button>
+            </div>`;
+          },
+        },
+      ],
+      order: [[3, 'desc']],
+      pageLength: 20,
+      lengthMenu: [10, 20, 50, 100],
+      language: {
+        search: '',
+        searchPlaceholder: '🔍  Rechercher un tracker…',
+        emptyTable: '<span class="text-secondary">No trackers found</span>',
+        zeroRecords: '<span class="text-secondary">No matching trackers</span>',
+        info: '_START_–_END_ of _TOTAL_ trackers',
+        lengthMenu: '_MENU_ per page',
+      },
+    });
+  }
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+// ─── Details panel ───────────────────────────────────────────────────────────
+
+const STATE_MAP = {
+  error:'bg-danger', missingFiles:'bg-danger',
+  uploading:'bg-success', forcedUP:'bg-success',
+  pausedUP:'bg-secondary', pausedDL:'bg-secondary',
+  stalledUP:'bg-warning text-dark', stalledDL:'bg-warning text-dark',
+  checkingUP:'bg-info text-dark', checkingDL:'bg-info text-dark',
+  downloading:'bg-primary', forcedDL:'bg-primary',
+};
+const STATE_LABELS = {
+  uploading:'Seeding', forcedUP:'Forced↑', pausedUP:'Paused', pausedDL:'Paused',
+  stalledUP:'Stalled', stalledDL:'Stalled', downloading:'DL', forcedDL:'Forced↓',
+  checkingUP:'Check', checkingDL:'Check', error:'Error', missingFiles:'Missing',
+};
+
+let currentDetailTorrents = [];  // cache for the currently displayed tracker
+
+function showDetails(trackerUrl) {
+  const info = trackerMap[trackerUrl] || { torrents: [], ok: 0, error: 0, pending: 0 };
+  currentDetailTorrents = info.torrents;
+
+  document.getElementById('details-title').textContent =
+    `${info.torrents.length} torrent(s) — ✓ ${info.ok}  ✗ ${info.error}  ⏳ ${info.pending}`;
+  document.getElementById('details-container').classList.remove('d-none');
+  document.getElementById('chk-detail-header').checked = false;
+  updateDetailSelectedCount();
+  renderDetailRows();
+}
+
+function renderDetailRows() {
+  const tbody = document.getElementById('details-tbody');
+  tbody.innerHTML = currentDetailTorrents.map(t => {
+    const cls   = STATE_MAP[t.state]    || 'bg-secondary';
+    const label = STATE_LABELS[t.state] || t.state || '?';
+    const pct   = Math.round((t.progress || 0) * 100);
+    const h     = escHtml(t.hash);
+    return `<tr>
+      <td><input type="checkbox" class="form-check-input detail-chk" data-hash="${h}"></td>
+      <td style="font-size:.82rem;" title="${escHtml(t.name)}">${escHtml(t.name.slice(0,55))}${t.name.length>55?'…':''}</td>
+      <td>
+        <span class="badge ${cls}" style="font-size:.65rem;">${label}</span>
+        <small class="text-secondary ms-1" style="font-size:.7rem;">${pct}%</small>
+      </td>
+      <td>
+        <div class="d-flex gap-1" data-hash="${h}">
+          <button class="btn btn-outline-success" style="padding:1px 6px;font-size:.72rem;" data-detail-action="resume"  title="Start"><i class="bi bi-play-fill"></i></button>
+          <button class="btn btn-outline-warning" style="padding:1px 6px;font-size:.72rem;" data-detail-action="pause"   title="Pause"><i class="bi bi-pause-fill"></i></button>
+          <button class="btn btn-outline-info"    style="padding:1px 6px;font-size:.72rem;" data-detail-action="recheck" title="Recheck"><i class="bi bi-arrow-repeat"></i></button>
+          <button class="btn btn-outline-danger"  style="padding:1px 6px;font-size:.72rem;" data-detail-action="delete"  title="Delete"><i class="bi bi-trash"></i></button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function getDetailSelectedHashes() {
+  return [...document.querySelectorAll('.detail-chk:checked')].map(c => c.dataset.hash);
+}
+
+function updateDetailSelectedCount() {
+  const n = getDetailSelectedHashes().length;
+  document.getElementById('detail-selected-count').textContent = n ? `${n} sélectionné(s)` : '';
+}
+
+async function detailAction(action, hashOrNull) {
+  const hashes = hashOrNull ? [hashOrNull] : getDetailSelectedHashes();
+  if (!hashes.length) { showToast('Aucun torrent sélectionné.', 'warning'); return; }
+  if (action === 'delete' && !confirm(`Supprimer ${hashes.length} torrent(s) ?`)) return;
+
+  const resp = await fetch('/api/torrent/action', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, hashes }),
+  });
+  const data = await resp.json();
+  if (data.ok) {
+    showToast(`${action} appliqué à ${data.count} torrent(s).`, 'success');
+    // Update state in currentDetailTorrents optimistically
+    const hashSet = new Set(hashes);
+    if (action === 'delete') {
+      currentDetailTorrents = currentDetailTorrents.filter(t => !hashSet.has(t.hash));
+    } else {
+      const stateMap = { pause: 'pausedDL', resume: 'downloading', recheck: 'checkingResumeData' };
+      currentDetailTorrents.forEach(t => { if (hashSet.has(t.hash)) t.state = stateMap[action]; });
+    }
+    renderDetailRows();
+    updateDetailSelectedCount();
+  } else {
+    showToast(data.error || 'Erreur', 'danger');
+  }
+}
+
+// Detail action buttons delegation
+document.getElementById('details-panel').addEventListener('click', e => {
+  const btn = e.target.closest('[data-detail-action]');
+  if (!btn) return;
+  const action = btn.dataset.detailAction;
+  const hash   = btn.closest('[data-hash]').dataset.hash;
+  detailAction(action, hash);
+});
+
+// Detail checkboxes
+document.getElementById('details-panel').addEventListener('change', e => {
+  if (e.target.classList.contains('detail-chk')) updateDetailSelectedCount();
+});
+document.getElementById('chk-detail-header').addEventListener('change', function() {
+  document.querySelectorAll('.detail-chk').forEach(c => c.checked = this.checked);
+  updateDetailSelectedCount();
+});
+document.getElementById('btn-detail-select-all').addEventListener('click', () => {
+  document.querySelectorAll('.detail-chk').forEach(c => c.checked = true);
+  document.getElementById('chk-detail-header').checked = true;
+  updateDetailSelectedCount();
+});
+document.getElementById('btn-detail-resume').addEventListener('click',  () => detailAction('resume',  null));
+document.getElementById('btn-detail-pause').addEventListener('click',   () => detailAction('pause',   null));
+document.getElementById('btn-detail-recheck').addEventListener('click', () => detailAction('recheck', null));
+document.getElementById('btn-detail-delete').addEventListener('click',  () => detailAction('delete',  null));
+
+document.getElementById('btn-close-details').addEventListener('click', () => {
+  document.getElementById('details-container').classList.add('d-none');
+});
+
+// ─── Tracker selection & delete ──────────────────────────────────────────────
+
+function getSelectedTrackerUrls() {
+  return [...document.querySelectorAll('.tracker-chk:checked')].map(c => c.dataset.url);
+}
+
+function updateTrackerSelectedCount() {
+  const n = getSelectedTrackerUrls().length;
+  document.getElementById('tracker-selected-count').textContent = n ? `${n} sélectionné(s)` : '';
+  document.getElementById('btn-tracker-delete-selected').disabled = n === 0;
+}
+
+async function deleteTrackers(urls) {
+  if (!urls.length) return;
+  const label = urls.length === 1
+    ? `Supprimer le tracker :\n${urls[0]}`
+    : `Supprimer ${urls.length} trackers de tous les torrents ?`;
+  if (!confirm(label)) return;
+
+  const btn = document.getElementById('btn-tracker-delete-selected');
+  btn.disabled = true;
+  showToast(`Suppression de ${urls.length} tracker(s)…`, 'info');
+
+  try {
+    const resp = await fetch('/api/tracker/delete-many', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ urls }),
+    });
+    const data = await resp.json();
+    if (!resp.ok || data.error) {
+      showToast(data.error || 'Échec de la suppression', 'danger');
+      return;
+    }
+    const msg = `✓ ${data.total_removed} suppression(s)` +
+      (data.failed ? ` — ✗ ${data.failed} erreur(s)` : '');
+    showToast(msg, data.failed ? 'warning' : 'success');
+    setTimeout(loadTrackers, 800);
+  } catch (e) {
+    showToast('Erreur réseau : ' + e.message, 'danger');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// Action buttons delegation (avoids JSON/quote issues in onclick attributes)
+document.getElementById('trackers-table').addEventListener('click', e => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const url = btn.closest('[data-url]').dataset.url;
+  const action = btn.dataset.action;
+  if      (action === 'details') showDetails(url);
+  else if (action === 'replace') prefillReplace(url);
+  else if (action === 'delete')  deleteTrackers([url]);
+});
+
+// Checkbox wiring (on table, to catch dynamically rendered rows)
+document.getElementById('trackers-table').addEventListener('change', e => {
+  if (e.target.classList.contains('tracker-chk')) updateTrackerSelectedCount();
+});
+
+document.getElementById('chk-tracker-header').addEventListener('change', function() {
+  document.querySelectorAll('.tracker-chk').forEach(c => c.checked = this.checked);
+  updateTrackerSelectedCount();
+});
+
+document.getElementById('btn-tracker-select-all').addEventListener('click', () => {
+  document.querySelectorAll('.tracker-chk').forEach(c => c.checked = true);
+  document.getElementById('chk-tracker-header').checked = true;
+  updateTrackerSelectedCount();
+});
+
+document.getElementById('btn-tracker-deselect-all').addEventListener('click', () => {
+  document.querySelectorAll('.tracker-chk').forEach(c => c.checked = false);
+  document.getElementById('chk-tracker-header').checked = false;
+  updateTrackerSelectedCount();
+});
+
+document.getElementById('btn-tracker-delete-selected').addEventListener('click', () => {
+  deleteTrackers(getSelectedTrackerUrls());
+});
+
+// ─── Pre-fill Replace tab from table ─────────────────────────────────────────
+function prefillReplace(url) {
+  document.getElementById('replace-old').value = url;
+  bootstrap.Tab.getOrCreateInstance(document.getElementById('tab-replace')).show();
+  document.getElementById('replace-old').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// ─── Bulk operations ─────────────────────────────────────────────────────────
+
+async function doBulkOp(operation, oldUrl, newUrl) {
+  const btnMap = {
+    replace: document.getElementById('btn-do-replace'),
+    add:     document.getElementById('btn-do-add'),
+    remove:  document.getElementById('btn-do-remove'),
+  };
+  const btn = btnMap[operation];
+  const origHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner-border spinner-inline me-2" role="status"></span>Working…`;
+
+  const wrapper = document.getElementById('bulk-results-wrapper');
+  const resultsEl = document.getElementById('bulk-results');
+  const summaryEl = document.getElementById('bulk-summary');
+  wrapper.classList.remove('d-none');
+  resultsEl.innerHTML = '';
+  summaryEl.innerHTML = `<span class="spinner-border spinner-inline me-2" role="status"></span>Processing…`;
+
+  try {
+    const resp = await fetch('/api/tracker/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ operation, old_url: oldUrl, new_url: newUrl }),
+    });
+    const data = await resp.json();
+
+    if (!resp.ok || data.error) {
+      showToast(data.error || 'Bulk operation failed', 'danger');
+      summaryEl.textContent = 'Error: ' + (data.error || 'unknown');
+      return;
+    }
+
+    // Summary
+    summaryEl.innerHTML =
+      `<i class="bi bi-check-circle-fill text-success me-1"></i>` +
+      `Done — <strong class="text-success">${data.success}</strong> ok` +
+      (data.failed > 0
+        ? `, <strong class="text-danger">${data.failed}</strong> failed`
+        : '');
+
+    // Detail rows
+    resultsEl.innerHTML = (data.details || []).map(d =>
+      `<div class="result-item d-flex align-items-center gap-2">
+         <i class="bi ${d.status === 'ok'
+           ? 'bi-check-circle-fill text-success'
+           : 'bi-x-circle-fill text-danger'
+         }"></i>
+         <span>${escHtml(d.name)}</span>
+         ${d.message ? `<span class="text-danger ms-auto" style="font-size:.75rem;">${escHtml(d.message)}</span>` : ''}
+       </div>`
+    ).join('');
+
+    showToast(
+      `${data.operation}: ${data.success} ok${data.failed ? ', ' + data.failed + ' failed' : ''}`,
+      data.failed ? 'warning' : 'success'
+    );
+
+    // Reload tracker overview
+    setTimeout(loadTrackers, 1200);
+
+  } catch (e) {
+    showToast('Network error: ' + e.message, 'danger');
+    summaryEl.textContent = 'Error: ' + e.message;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = origHtml;
+  }
+}
+
+// ─── Button wiring ────────────────────────────────────────────────────────────
+
+document.getElementById('btn-do-replace').addEventListener('click', () => {
+  const oldUrl = document.getElementById('replace-old').value.trim();
+  const newUrl = document.getElementById('replace-new').value.trim();
+  if (!oldUrl) { showToast('Old tracker URL is required.', 'warning'); return; }
+  if (!newUrl) { showToast('New tracker URL is required.', 'warning'); return; }
+  if (oldUrl === newUrl) { showToast('Old and new URLs are identical.', 'warning'); return; }
+  doBulkOp('replace', oldUrl, newUrl);
+});
+
+document.getElementById('btn-do-add').addEventListener('click', () => {
+  const url = document.getElementById('add-url').value.trim();
+  if (!url) { showToast('Tracker URL is required.', 'warning'); return; }
+  doBulkOp('add', '', url);
+});
+
+document.getElementById('btn-do-remove').addEventListener('click', () => {
+  const url = document.getElementById('remove-url').value.trim();
+  if (!url) { showToast('Tracker URL is required.', 'warning'); return; }
+  doBulkOp('remove', url, '');
+});
+
+document.getElementById('btn-refresh-trackers').addEventListener('click', loadTrackers);
+
+document.getElementById('btn-clear-results').addEventListener('click', () => {
+  document.getElementById('bulk-results-wrapper').classList.add('d-none');
+  document.getElementById('bulk-results').innerHTML = '';
+});
+
+// ─── Auto-fill from URL hash (e.g., coming from torrents page) ───────────────
+// Allow pre-filling the old-URL field via location.hash: #replace?url=...
+(function () {
+  const h = location.hash;
+  if (h.startsWith('#replace?url=')) {
+    try {
+      const url = decodeURIComponent(h.slice('#replace?url='.length));
+      document.getElementById('replace-old').value = url;
+      // Activate replace tab
+      bootstrap.Tab.getOrCreateInstance(document.getElementById('tab-replace')).show();
+    } catch (_) {}
+  }
+})();
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+loadTrackers();
+</script>
+{% endblock %}

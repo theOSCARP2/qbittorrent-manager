@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+{% block title %}Torrents – qBit Manager{% endblock %}
+
+{% block extra_head %}
+<style>
+  .action-btn { padding: 2px 7px; font-size: .78rem; }
+  .state-badge { font-size: .68rem; text-transform: uppercase; letter-spacing: .4px; padding: .2em .55em; }
+  #loading-bar { height: 3px; background: linear-gradient(90deg,#1f6feb 40%,transparent 100%); animation: slide 1.2s infinite; }
+  @keyframes slide { from{background-position:-200px} to{background-position:200px} }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <h4 class="mb-0 fw-bold text-white">
+    <i class="bi bi-list-ul me-2 text-primary"></i>Torrents
+    <span id="torrent-count" class="badge bg-secondary ms-2 fw-normal" style="font-size:.75rem;"></span>
+  </h4>
+  <div class="d-flex align-items-center gap-2">
+    <span id="cache-status" class="text-secondary small"></span>
+    <button class="btn btn-sm btn-outline-secondary" id="btn-refresh" title="Refresh">
+      <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+    </button>
+  </div>
+</div>
+
+<!-- Loading bar (shown while cache populates) -->
+<div id="loading-bar" class="mb-2 rounded" style="display:none;"></div>
+
+<!-- Bulk toolbar -->
+<div class="card mb-3">
+  <div class="card-body py-2 px-3 d-flex flex-wrap align-items-center gap-2">
+    <span class="text-secondary me-2" style="font-size:.85rem;">
+      <i class="bi bi-check2-square me-1"></i>Bulk actions:
+    </span>
+    <button class="btn btn-sm btn-outline-secondary" id="btn-select-all">
+      <i class="bi bi-check-all me-1"></i>Select All (page)
+    </button>
+    <button class="btn btn-sm btn-outline-secondary" id="btn-deselect-all">
+      <i class="bi bi-x-square me-1"></i>Deselect All
+    </button>
+    <div class="vr mx-1"></div>
+    <button class="btn btn-sm btn-outline-warning"  id="btn-pause-selected"><i class="bi bi-pause-fill me-1"></i>Pause</button>
+    <button class="btn btn-sm btn-outline-success"  id="btn-resume-selected"><i class="bi bi-play-fill me-1"></i>Resume</button>
+    <button class="btn btn-sm btn-outline-info"     id="btn-recheck-selected"><i class="bi bi-arrow-repeat me-1"></i>Recheck</button>
+    <button class="btn btn-sm btn-outline-danger"   id="btn-delete-selected"><i class="bi bi-trash me-1"></i>Delete</button>
+    <span id="selected-count" class="ms-2 text-secondary" style="font-size:.82rem;"></span>
+  </div>
+</div>
+
+<!-- Torrents table -->
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table id="torrents-table" class="table table-hover table-striped align-middle mb-0" style="width:100%">
+        <thead class="table-dark">
+          <tr>
+            <th style="width:36px;"><input type="checkbox" class="form-check-input" id="chk-header" /></th>
+            <th>Name</th>
+            <th>Size</th>
+            <th>Progress</th>
+            <th>State</th>
+            <th>Seeds</th>
+            <th>Peers</th>
+            <th>Down</th>
+            <th>Up</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Delete modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark border-secondary">
+      <div class="modal-header border-secondary">
+        <h5 class="modal-title text-danger"><i class="bi bi-trash me-2"></i>Delete Torrents</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-secondary" id="delete-modal-body"></div>
+      <div class="modal-footer border-secondary">
+        <div class="form-check me-auto">
+          <input class="form-check-input" type="checkbox" id="chk-delete-files" />
+          <label class="form-check-label text-secondary" for="chk-delete-files">Also delete files from disk</label>
+        </div>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" id="btn-confirm-delete"><i class="bi bi-trash me-1"></i>Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// ── Formatters ───────────────────────────────────────────────────────────────
+function fmtSize(b) {
+  if (!b) return '—';
+  if (b >= 1e12) return (b/1e12).toFixed(2)+' TB';
+  if (b >= 1e9)  return (b/1e9).toFixed(2)+' GB';
+  if (b >= 1e6)  return (b/1e6).toFixed(1)+' MB';
+  return (b/1e3).toFixed(0)+' KB';
+}
+function fmtSpeed(b) {
+  if (!b) return '—';
+  if (b >= 1e6) return (b/1e6).toFixed(1)+' MB/s';
+  if (b >= 1e3) return (b/1e3).toFixed(0)+' KB/s';
+  return b+' B/s';
+}
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+const STATE_MAP = {
+  error:'bg-danger', missingFiles:'bg-danger',
+  uploading:'bg-success', forcedUP:'bg-success',
+  pausedUP:'bg-secondary', pausedDL:'bg-secondary',
+  queuedUP:'bg-secondary', queuedDL:'bg-secondary',
+  stalledUP:'bg-warning text-dark', stalledDL:'bg-warning text-dark',
+  checkingUP:'bg-info text-dark', checkingDL:'bg-info text-dark',
+  checkingResumeData:'bg-info text-dark',
+  allocating:'bg-info text-dark', moving:'bg-info text-dark',
+  downloading:'bg-primary', forcedDL:'bg-primary', metaDL:'bg-info text-dark',
+};
+const STATE_LABELS = {
+  uploading:'Seeding', forcedUP:'Forced↑', pausedUP:'Paused', pausedDL:'Paused',
+  stalledUP:'Stalled', stalledDL:'Stalled', downloading:'Downloading',
+  checkingUP:'Checking', checkingDL:'Checking', checkingResumeData:'Checking',
+  queuedUP:'Queued', queuedDL:'Queued', allocating:'Allocating',
+  moving:'Moving', metaDL:'Meta DL', forcedDL:'Forced↓',
+  error:'Error', missingFiles:'Missing',
+};
+
+function renderRow(t) {
+  const pct     = Math.round((t.progress||0)*100);
+  const isPaused = (t.state||'').includes('paused');
+  const cls     = STATE_MAP[t.state] || 'bg-secondary';
+  const label   = STATE_LABELS[t.state] || t.state || '?';
+  const pbCls   = pct>=100 ? 'bg-success' : pct>=50 ? 'bg-primary' : 'bg-warning';
+
+  return [
+    `<input type="checkbox" class="form-check-input row-chk" data-hash="${t.hash}">`,
+    `<span title="${escHtml(t.name||'')}">${escHtml((t.name||'').slice(0,70))}${(t.name||'').length>70?'…':''}</span>`,
+    `<span data-order="${t.size||0}">${fmtSize(t.size)}</span>`,
+    `<div class="d-flex align-items-center gap-1">
+       <div class="progress flex-grow-1" style="min-width:70px;">
+         <div class="progress-bar ${pbCls}" style="width:${pct}%"></div>
+       </div>
+       <small class="text-secondary" style="min-width:32px;text-align:right">${pct}%</small>
+     </div>`,
+    `<span class="badge state-badge ${cls}">${label}</span>`,
+    t.num_seeds ?? '—',
+    t.num_leechs ?? '—',
+    `<span data-order="${t.dlspeed||0}">${fmtSpeed(t.dlspeed)}</span>`,
+    `<span data-order="${t.upspeed||0}">${fmtSpeed(t.upspeed)}</span>`,
+    `<div class="d-flex gap-1">
+      <button class="btn btn-sm btn-outline-success action-btn" onclick="torrentAction('resume','${t.hash}')" title="Start/Resume"><i class="bi bi-play-fill"></i></button>
+      <button class="btn btn-sm btn-outline-warning action-btn" onclick="torrentAction('pause','${t.hash}')"  title="Pause/Stop"><i class="bi bi-pause-fill"></i></button>
+      <button class="btn btn-sm btn-outline-info    action-btn" onclick="torrentAction('recheck','${t.hash}')" title="Recheck"><i class="bi bi-arrow-repeat"></i></button>
+      <button class="btn btn-sm btn-outline-danger  action-btn" onclick="openDeleteModal(['${t.hash}'])"       title="Delete"><i class="bi bi-trash"></i></button>
+     </div>`,
+  ];
+}
+
+// ── DataTable (server-side) ──────────────────────────────────────────────────
+let dt;
+let pollTimer = null;
+
+function initTable() {
+  dt = $('#torrents-table').DataTable({
+    serverSide: true,
+    processing: true,
+    ajax: function(dtParams, callback, settings) {
+      const params = new URLSearchParams({
+        draw:              dtParams.draw,
+        start:             dtParams.start,
+        length:            dtParams.length,
+        'search[value]':   dtParams.search.value,
+        'order[0][column]': dtParams.order[0].column,
+        'order[0][dir]':    dtParams.order[0].dir,
+      });
+      fetch('/api/torrents?' + params)
+        .then(r => r.json())
+        .then(json => {
+          document.getElementById('torrent-count').textContent = json.recordsTotal || 0;
+          if (json.loading) {
+            schedulePoll();
+            callback({ draw: json.draw, recordsTotal: 0, recordsFiltered: 0, data: [] });
+            return;
+          }
+          document.getElementById('loading-bar').style.display = 'none';
+          document.getElementById('cache-status').textContent = '';
+          callback({
+            draw: json.draw,
+            recordsTotal: json.recordsTotal,
+            recordsFiltered: json.recordsFiltered,
+            data: (json.data || []).map(renderRow),
+          });
+        })
+        .catch(err => {
+          showToast('Failed to load torrents: ' + err.message, 'danger');
+          callback({ draw: dtParams.draw, recordsTotal: 0, recordsFiltered: 0, data: [] });
+        });
+    },
+    columns: [
+      { orderable: false, searchable: false, width: '36px' },
+      { title: 'Name' },
+      { title: 'Size',     type: 'num' },
+      { title: 'Progress', orderable: false, searchable: false },
+      { title: 'State' },
+      { title: 'Seeds',    type: 'num' },
+      { title: 'Peers',    type: 'num' },
+      { title: 'Down',     type: 'num' },
+      { title: 'Up',       type: 'num' },
+      { title: 'Actions',  orderable: false, searchable: false },
+    ],
+    order: [[1, 'asc']],
+    pageLength: 20,
+    lengthMenu: [20, 50, 100, 200],
+    language: {
+      search: '<i class="bi bi-search me-1"></i>',
+      searchPlaceholder: 'Filter torrents…',
+      processing: '<div class="spinner-border spinner-border-sm text-primary me-2"></div> Chargement…',
+      emptyTable: '<span class="text-secondary">No torrents</span>',
+      zeroRecords: '<span class="text-secondary">No matching torrents</span>',
+      lengthMenu: '_MENU_ per page',
+      info: '_START_–_END_ of _TOTAL_',
+    },
+  });
+}
+
+function schedulePoll() {
+  if (pollTimer) return;
+  document.getElementById('loading-bar').style.display = 'block';
+  document.getElementById('cache-status').textContent = 'Loading from server…';
+  pollTimer = setTimeout(() => {
+    pollTimer = null;
+    fetch('/api/torrents/status').then(r => r.json()).then(s => {
+      if (s.ready) {
+        dt.ajax.reload(null, false);
+      } else {
+        document.getElementById('cache-status').textContent =
+          s.total > 0 ? `Loaded ${s.total} torrents…` : 'Connecting to qBittorrent…';
+        schedulePoll();
+      }
+    });
+  }, 1500);
+}
+
+// ── Actions ──────────────────────────────────────────────────────────────────
+async function torrentAction(action, hash, deleteFiles=false) {
+  const body = {action, hashes:[hash]};
+  if (action==='delete') body.deleteFiles = deleteFiles;
+  const resp = await fetch('/api/torrent/action', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  const data = await resp.json();
+  if (data.ok) { showToast(`${action} applied.`, 'success'); setTimeout(()=>dt.ajax.reload(null,false), 500); }
+  else showToast(data.error || 'Failed', 'danger');
+}
+
+async function bulkAction(action) {
+  const hashes = [...document.querySelectorAll('.row-chk:checked')].map(c=>c.dataset.hash);
+  if (!hashes.length) { showToast('No torrents selected.', 'warning'); return; }
+  const resp = await fetch('/api/torrent/action', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action,hashes})});
+  const data = await resp.json();
+  if (data.ok) { showToast(`${data.count} torrent(s) ${action}.`, 'success'); setTimeout(()=>dt.ajax.reload(null,false), 500); }
+  else showToast(data.error || 'Failed', 'danger');
+}
+
+// ── Selection ────────────────────────────────────────────────────────────────
+function updateSelectedCount() {
+  const n = document.querySelectorAll('.row-chk:checked').length;
+  document.getElementById('selected-count').textContent = n ? `${n} selected` : '';
+}
+
+document.getElementById('chk-header').addEventListener('change', function() {
+  document.querySelectorAll('.row-chk').forEach(c => c.checked = this.checked);
+  updateSelectedCount();
+});
+document.getElementById('torrents-table').addEventListener('change', e => {
+  if (e.target.classList.contains('row-chk')) updateSelectedCount();
+});
+document.getElementById('btn-select-all').addEventListener('click', () => {
+  document.querySelectorAll('.row-chk').forEach(c => c.checked = true);
+  document.getElementById('chk-header').checked = true;
+  updateSelectedCount();
+});
+document.getElementById('btn-deselect-all').addEventListener('click', () => {
+  document.querySelectorAll('.row-chk').forEach(c => c.checked = false);
+  document.getElementById('chk-header').checked = false;
+  updateSelectedCount();
+});
+document.getElementById('btn-pause-selected').addEventListener('click',   () => bulkAction('pause'));
+document.getElementById('btn-resume-selected').addEventListener('click',  () => bulkAction('resume'));
+document.getElementById('btn-recheck-selected').addEventListener('click', () => bulkAction('recheck'));
+document.getElementById('btn-delete-selected').addEventListener('click',  () => {
+  const hashes = [...document.querySelectorAll('.row-chk:checked')].map(c=>c.dataset.hash);
+  if (!hashes.length) { showToast('No torrents selected.', 'warning'); return; }
+  openDeleteModal(hashes);
+});
+document.getElementById('btn-refresh').addEventListener('click', () => dt.ajax.reload(null, false));
+
+// ── Delete modal ─────────────────────────────────────────────────────────────
+let pendingDeleteHashes = [];
+const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+
+function openDeleteModal(hashes) {
+  pendingDeleteHashes = hashes;
+  document.getElementById('delete-modal-body').textContent =
+    hashes.length === 1 ? 'Delete this torrent?' : `Delete ${hashes.length} torrents?`;
+  document.getElementById('chk-delete-files').checked = false;
+  deleteModal.show();
+}
+
+document.getElementById('btn-confirm-delete').addEventListener('click', async () => {
+  const deleteFiles = document.getElementById('chk-delete-files').checked;
+  deleteModal.hide();
+  const resp = await fetch('/api/torrent/action', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({action:'delete', hashes:pendingDeleteHashes, deleteFiles})});
+  const data = await resp.json();
+  if (data.ok) { showToast(`${data.count} deleted.`, 'success'); setTimeout(()=>dt.ajax.reload(null,false), 500); }
+  else showToast(data.error || 'Failed', 'danger');
+});
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+initTable();
+</script>
+{% endblock %}

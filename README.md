@@ -2,6 +2,8 @@
 
 Une interface web Flask légère pour gérer une instance qBittorrent à distance.
 
+> 🇬🇧 [English version](README.en.md)
+
 ## Fonctionnalités
 
 - **Liste des torrents** — tableau paginé, triable et recherchable (DataTables côté serveur)

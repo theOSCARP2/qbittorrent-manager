@@ -590,9 +590,12 @@ document.getElementById('chk-tracker-header').addEventListener('change', functio
 });
 
 document.getElementById('btn-tracker-select-all').addEventListener('click', () => {
-  document.querySelectorAll('.tracker-chk').forEach(c => c.checked = true);
+  const boxes = document.querySelectorAll('.tracker-chk');
+  boxes.forEach(c => c.checked = true);
   document.getElementById('chk-tracker-header').checked = true;
-  updateTrackerSelectedCount();
+  const n = boxes.length;
+  document.getElementById('tracker-selected-count').textContent = n ? `${n} sélectionné(s)` : '';
+  document.getElementById('btn-tracker-delete-selected').disabled = n === 0;
 });
 
 document.getElementById('btn-tracker-deselect-all').addEventListener('click', () => {

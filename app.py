@@ -88,20 +88,21 @@ app.secret_key = _get_secret_key()
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-_TORRENT_FIELDS = {"hash", "name", "size", "progress", "state",
+_TORRENT_FIELDS = {"hash", "name", "category", "size", "progress", "state",
                    "num_seeds", "num_leechs", "dlspeed", "upspeed",
                    "added_on", "completion_on", "save_path", "ratio"}
 
 # Columns sortable server-side: DataTables column index → torrent field
 _SORT_COLS = {
     1: "name",
-    2: "size",
-    4: "state",
-    5: "num_seeds",
-    6: "num_leechs",
-    7: "dlspeed",
-    8: "upspeed",
-    9: "ratio",
+    2: "category",
+    3: "size",
+    5: "state",
+    6: "num_seeds",
+    7: "num_leechs",
+    8: "dlspeed",
+    9: "upspeed",
+    10: "ratio",
 }
 
 
@@ -305,8 +306,14 @@ def api_torrents():
     order_col = int(request.args.get("order[0][column]", 1))
     order_dir = request.args.get("order[0][dir]", "asc")
 
+    category_filter = request.args.get("category", "").strip()
+
     # -- Filter
-    filtered = [t for t in data if search in t.get("name", "").lower()] if search else data
+    filtered = data
+    if search:
+        filtered = [t for t in filtered if search in t.get("name", "").lower()]
+    if category_filter:
+        filtered = [t for t in filtered if t.get("category", "") == category_filter]
 
     # -- Sort
     sort_key = _SORT_COLS.get(order_col, "name")
@@ -325,6 +332,14 @@ def api_torrents():
         "recordsFiltered": len(filtered),
         "data": page,
     })
+
+
+@app.route("/api/torrents/categories")
+def api_torrents_categories():
+    if not is_logged_in():
+        return jsonify({"error": "Not authenticated"}), 401
+    cats = sorted({t.get("category", "") for t in _cache.get() if t.get("category")})
+    return jsonify(cats)
 
 
 @app.route("/api/trackers")

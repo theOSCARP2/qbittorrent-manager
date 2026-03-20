@@ -5,6 +5,15 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.5.0] - 2026-03-21
+
+### Ajouté
+- Colonne Catégorie dans le tableau des torrents (triable)
+- Filtre par catégorie via un menu déroulant dans la barre d'en-tête
+- Commentaire du torrent affiché dans le panneau détail
+
+---
+
 ## [1.4.0] - 2026-03-21
 
 ### Ajouté

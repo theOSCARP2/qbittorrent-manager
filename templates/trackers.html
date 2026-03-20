@@ -98,7 +98,7 @@
                    style="width:100%">
               <thead class="table-dark">
                 <tr>
-                  <th style="width:36px;"><input type="checkbox" class="form-check-input" id="chk-tracker-header"></th>
+                  <th style="width:36px;"></th>
                   <th>Tracker URL</th>
                   <th style="width:100px;">Torrents</th>
                   <th style="width:130px;">Statut</th>
@@ -272,6 +272,7 @@
 
 let trackerMap = {};   // url -> { torrents, ok, error, pending }
 let dtTrackers;
+const selectedTrackerUrls = new Set();  // source de vérité pour la sélection
 
 // Sort key for status: more errors = worse (higher = worse for sorting asc)
 function statusSortKey(row) {
@@ -315,6 +316,8 @@ async function loadTrackers() {
 
   document.getElementById('trackers-loading').classList.add('d-none');
   document.getElementById('trackers-table-wrapper').classList.remove('d-none');
+  selectedTrackerUrls.clear();
+  updateTrackerSelectedCount();
 
   const entries = Object.entries(trackerMap);
   document.getElementById('tracker-count-badge').textContent = entries.length + ' trackers';
@@ -334,7 +337,7 @@ async function loadTrackers() {
       data: rows,
       columns: [
         {
-          title: '',
+          title: '<input type="checkbox" class="form-check-input" id="chk-tracker-header">',
           data: 'url',
           orderable: false,
           searchable: false,
@@ -387,6 +390,16 @@ async function loadTrackers() {
         info: '_START_–_END_ of _TOTAL_ trackers',
         lengthMenu: '_MENU_ per page',
       },
+    });
+
+    // Resynchronise les cases à cocher après chaque redraw (pagination, tri…)
+    dtTrackers.on('draw.dt', () => {
+      document.querySelectorAll('.tracker-chk').forEach(c => {
+        c.checked = selectedTrackerUrls.has(c.dataset.url);
+      });
+      const boxes = document.querySelectorAll('.tracker-chk');
+      const hdr = document.getElementById('chk-tracker-header');
+      if (hdr) hdr.checked = boxes.length > 0 && [...boxes].every(c => c.checked);
     });
   }
 }
@@ -526,11 +539,11 @@ document.getElementById('btn-close-details').addEventListener('click', () => {
 // ─── Tracker selection & delete ──────────────────────────────────────────────
 
 function getSelectedTrackerUrls() {
-  return [...document.querySelectorAll('.tracker-chk:checked')].map(c => c.dataset.url);
+  return [...selectedTrackerUrls];
 }
 
 function updateTrackerSelectedCount() {
-  const n = getSelectedTrackerUrls().length;
+  const n = selectedTrackerUrls.size;
   document.getElementById('tracker-selected-count').textContent = n ? `${n} sélectionné(s)` : '';
   document.getElementById('btn-tracker-delete-selected').disabled = n === 0;
 }
@@ -581,26 +594,36 @@ document.getElementById('trackers-table').addEventListener('click', e => {
 
 // Checkbox wiring (on table, to catch dynamically rendered rows)
 document.getElementById('trackers-table').addEventListener('change', e => {
-  if (e.target.classList.contains('tracker-chk')) updateTrackerSelectedCount();
+  if (e.target.classList.contains('tracker-chk')) {
+    if (e.target.checked) selectedTrackerUrls.add(e.target.dataset.url);
+    else selectedTrackerUrls.delete(e.target.dataset.url);
+    updateTrackerSelectedCount();
+  }
 });
 
-document.getElementById('chk-tracker-header').addEventListener('change', function() {
-  document.querySelectorAll('.tracker-chk').forEach(c => c.checked = this.checked);
+document.addEventListener('change', function(e) {
+  if (e.target.id !== 'chk-tracker-header') return;
+  document.querySelectorAll('.tracker-chk').forEach(c => {
+    c.checked = e.target.checked;
+    if (e.target.checked) selectedTrackerUrls.add(c.dataset.url);
+    else selectedTrackerUrls.delete(c.dataset.url);
+  });
   updateTrackerSelectedCount();
 });
 
 document.getElementById('btn-tracker-select-all').addEventListener('click', () => {
-  const boxes = document.querySelectorAll('.tracker-chk');
-  boxes.forEach(c => c.checked = true);
-  document.getElementById('chk-tracker-header').checked = true;
-  const n = boxes.length;
-  document.getElementById('tracker-selected-count').textContent = n ? `${n} sélectionné(s)` : '';
-  document.getElementById('btn-tracker-delete-selected').disabled = n === 0;
+  dtTrackers.rows({ page: 'current' }).data().each(row => selectedTrackerUrls.add(row.url));
+  document.querySelectorAll('.tracker-chk').forEach(c => c.checked = true);
+  const hdrSel = document.getElementById('chk-tracker-header');
+  if (hdrSel) hdrSel.checked = true;
+  updateTrackerSelectedCount();
 });
 
 document.getElementById('btn-tracker-deselect-all').addEventListener('click', () => {
+  selectedTrackerUrls.clear();
   document.querySelectorAll('.tracker-chk').forEach(c => c.checked = false);
-  document.getElementById('chk-tracker-header').checked = false;
+  const hdrDesel = document.getElementById('chk-tracker-header');
+  if (hdrDesel) hdrDesel.checked = false;
   updateTrackerSelectedCount();
 });
 

@@ -36,6 +36,29 @@ pip install -r requirements.txt
 
 ## Usage
 
+### From binaries (recommended)
+
+Download the binary for your system from the [Releases](https://github.com/theOSCARP2/qbittorrent-manager/releases) page:
+
+| System | File |
+|---|---|
+| Windows | `qbittorrent-manager.exe` |
+| Linux | `qbittorrent-manager-linux` |
+| macOS | `qbittorrent-manager-macos` |
+
+**Windows** — double-click the `.exe` or run it from a terminal:
+```bat
+qbittorrent-manager.exe
+```
+
+**Linux / macOS** — make the file executable then run it:
+```bash
+chmod +x qbittorrent-manager-linux  # or qbittorrent-manager-macos
+./qbittorrent-manager-linux
+```
+
+### From source
+
 ```bash
 python app.py
 ```

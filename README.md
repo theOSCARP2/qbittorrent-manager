@@ -54,7 +54,8 @@ Télécharger le binaire correspondant à votre système depuis la page [Release
 |---|---|
 | Windows | `qbittorrent-manager.exe` |
 | Linux | `qbittorrent-manager-linux` |
-| macOS (Intel + Apple Silicon) | `qbittorrent-manager-macos` |
+| macOS (Apple Silicon M1/M2/M3) | `qbittorrent-manager-macos-arm64` |
+| macOS (Intel) | `qbittorrent-manager-macos-intel` |
 
 **Windows** — double-cliquer sur le `.exe` ou l'exécuter depuis un terminal :
 ```bat
@@ -63,7 +64,7 @@ qbittorrent-manager.exe
 
 **Linux / macOS** — rendre le fichier exécutable puis le lancer :
 ```bash
-chmod +x qbittorrent-manager-linux  # ou qbittorrent-manager-macos
+chmod +x qbittorrent-manager-linux  # ou qbittorrent-manager-macos-arm64 / qbittorrent-manager-macos-intel
 ./qbittorrent-manager-linux
 ```
 

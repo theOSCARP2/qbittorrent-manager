@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Anti-flash: apply saved theme before CSS loads -->
+  <script>(function(){var t=localStorage.getItem('qbm-theme')||'dark';document.documentElement.setAttribute('data-bs-theme',t);}());</script>
   <title>{% block title %}qBittorrent Manager{% endblock %}</title>
 
   <!-- Bootstrap 5 -->
@@ -20,47 +22,75 @@
         href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" />
 
   <style>
+    /* ── Theme variables ──────────────────────────────────────────────────── */
+    :root {
+      --qbm-bg:          #0d1117;
+      --qbm-bg-card:     #161b22;
+      --qbm-bg-input:    #21262d;
+      --qbm-border:      #30363d;
+      --qbm-text:        #c9d1d9;
+      --qbm-text-muted:  #8b949e;
+      --qbm-accent:      #58a6ff;
+      --qbm-hover-bg:    rgba(88,166,255,.07);
+      --qbm-selected-bg: rgba(88,166,255,.13);
+      --qbm-striped-bg:  rgba(255,255,255,.03);
+      --qbm-progress-bg: #21262d;
+    }
+    html[data-bs-theme=light] {
+      --qbm-bg:          #eef0f3;
+      --qbm-bg-card:     #ffffff;
+      --qbm-bg-input:    #ffffff;
+      --qbm-border:      #d0d7de;
+      --qbm-text:        #24292f;
+      --qbm-text-muted:  #57606a;
+      --qbm-accent:      #0969da;
+      --qbm-hover-bg:    rgba(9,105,218,.07);
+      --qbm-selected-bg: rgba(9,105,218,.13);
+      --qbm-striped-bg:  rgba(0,0,0,.025);
+      --qbm-progress-bg: #e2e5ea;
+    }
+
     body {
       min-height: 100vh;
-      background-color: #0d1117;
-      color: #c9d1d9;
+      background-color: var(--qbm-bg);
+      color: var(--qbm-text);
     }
 
     .navbar {
-      background-color: #161b22 !important;
-      border-bottom: 1px solid #30363d;
+      background-color: var(--qbm-bg-card) !important;
+      border-bottom: 1px solid var(--qbm-border);
     }
 
     .navbar-brand {
       font-weight: 700;
-      color: #58a6ff !important;
+      color: var(--qbm-accent) !important;
       letter-spacing: .5px;
     }
 
-    .nav-link {
-      color: #8b949e !important;
+    .navbar .nav-link {
+      color: var(--qbm-text-muted) !important;
       transition: color .15s;
     }
-    .nav-link:hover,
-    .nav-link.active {
-      color: #58a6ff !important;
+    .navbar .nav-link:hover,
+    .navbar .nav-link.active {
+      color: var(--qbm-accent) !important;
     }
 
     .card {
-      background-color: #161b22;
-      border: 1px solid #30363d;
+      background-color: var(--qbm-bg-card);
+      border: 1px solid var(--qbm-border);
     }
 
     .table {
       --bs-table-bg: transparent;
-      --bs-table-striped-bg: rgba(255,255,255,.03);
-      --bs-table-hover-bg: rgba(88,166,255,.07);
+      --bs-table-striped-bg: var(--qbm-striped-bg);
+      --bs-table-hover-bg: var(--qbm-hover-bg);
     }
 
     .progress {
       height: 8px;
       border-radius: 4px;
-      background-color: #30363d;
+      background-color: var(--qbm-progress-bg);
     }
 
     .badge-state {
@@ -71,11 +101,11 @@
 
     .server-pill {
       font-size: .78rem;
-      background-color: #21262d;
-      border: 1px solid #30363d;
+      background-color: var(--qbm-bg-input);
+      border: 1px solid var(--qbm-border);
       border-radius: 20px;
       padding: 3px 10px;
-      color: #8b949e;
+      color: var(--qbm-text-muted);
     }
 
     .server-pill .dot {
@@ -87,25 +117,25 @@
       margin-right: 5px;
     }
 
-    /* DataTables dark overrides */
+    /* DataTables overrides */
     .dataTables_wrapper .dataTables_length select,
     .dataTables_wrapper .dataTables_filter input {
-      background-color: #21262d;
-      border: 1px solid #30363d;
-      color: #c9d1d9;
+      background-color: var(--qbm-bg-input);
+      border: 1px solid var(--qbm-border);
+      color: var(--qbm-text);
       border-radius: 6px;
     }
 
     .dataTables_wrapper .dataTables_info,
     .dataTables_wrapper .dataTables_paginate .paginate_button {
-      color: #8b949e !important;
+      color: var(--qbm-text-muted) !important;
     }
 
     .dataTables_wrapper .dataTables_paginate .paginate_button.current,
     .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
-      background: #21262d !important;
-      border-color: #30363d !important;
-      color: #58a6ff !important;
+      background: var(--qbm-bg-input) !important;
+      border-color: var(--qbm-border) !important;
+      color: var(--qbm-accent) !important;
     }
 
     /* Toasts */
@@ -129,7 +159,7 @@
   <div class="container-fluid">
     <a class="navbar-brand" href="{{ url_for('index') }}">
       <i class="bi bi-cloud-download-fill me-2"></i>qBit Manager
-      <span style="font-size:.65rem;font-weight:400;color:#8b949e;margin-left:4px;">v{{ app_version }}</span>
+      <span style="font-size:.65rem;font-weight:400;color:var(--qbm-text-muted);margin-left:4px;">v{{ app_version }}</span>
       <a id="update-badge" href="https://github.com/{{ github_repo }}/releases/latest"
          target="_blank" rel="noopener"
          class="badge bg-warning text-dark ms-2 d-none"
@@ -174,13 +204,15 @@
           {% endif %}
         </span>
         <button class="btn btn-sm btn-outline-secondary" id="btn-lang" title="Switch language"></button>
+        <button class="btn btn-sm btn-outline-secondary" id="btn-theme" title="Toggle theme"><i id="theme-icon" class="bi bi-moon-stars-fill"></i></button>
         <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-danger">
           <i class="bi bi-box-arrow-right me-1"></i><span data-i18n="nav.logout"></span>
         </a>
       </div>
       {% else %}
-      <div class="ms-auto">
+      <div class="ms-auto d-flex gap-2">
         <button class="btn btn-sm btn-outline-secondary" id="btn-lang" title="Switch language"></button>
+        <button class="btn btn-sm btn-outline-secondary" id="btn-theme" title="Toggle theme"><i id="theme-icon" class="bi bi-moon-stars-fill"></i></button>
       </div>
       {% endif %}
     </div>
@@ -707,14 +739,35 @@ function applyTranslations() {
   if (btnLang) btnLang.textContent = __('nav.lang');
 }
 
-// Bascule de langue
+// ── Thème ────────────────────────────────────────────────────────────────────
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-bs-theme', theme);
+  const icon = document.getElementById('theme-icon');
+  if (icon) icon.className = theme === 'dark' ? 'bi bi-moon-stars-fill' : 'bi bi-sun-fill';
+  document.dispatchEvent(new CustomEvent('qbm-theme-changed', { detail: { theme } }));
+}
+
+// Bascule de langue + thème
 document.addEventListener('DOMContentLoaded', () => {
   applyTranslations();
+
+  // Langue
   const btnLang = document.getElementById('btn-lang');
   if (btnLang) {
     btnLang.addEventListener('click', () => {
       localStorage.setItem('qbm-lang', currentLang === 'fr' ? 'en' : 'fr');
       location.reload();
+    });
+  }
+
+  // Thème
+  applyTheme(localStorage.getItem('qbm-theme') || 'dark');
+  const btnTheme = document.getElementById('btn-theme');
+  if (btnTheme) {
+    btnTheme.addEventListener('click', () => {
+      const next = (localStorage.getItem('qbm-theme') || 'dark') === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('qbm-theme', next);
+      applyTheme(next);
     });
   }
 });

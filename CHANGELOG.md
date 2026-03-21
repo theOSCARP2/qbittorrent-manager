@@ -5,6 +5,17 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.11.0] - 2026-03-21
+
+### Ajouté
+- Basculement thème sombre / thème clair via un bouton soleil/lune dans la barre de navigation
+- Préférence de thème sauvegardée dans le navigateur (localStorage)
+- Variables CSS personnalisées (`--qbm-bg`, `--qbm-bg-card`, `--qbm-bg-input`, `--qbm-border`, `--qbm-text`, `--qbm-text-muted`, `--qbm-accent`, etc.) pour un theming cohérent
+- Script anti-flash dans le `<head>` pour appliquer le thème avant le chargement du CSS
+- Couleurs du graphique Chart.js mises à jour dynamiquement lors du changement de thème
+
+---
+
 ## [1.10.0] - 2026-03-21
 
 ### Ajouté

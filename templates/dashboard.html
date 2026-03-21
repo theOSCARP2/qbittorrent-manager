@@ -4,9 +4,9 @@
 {% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <style>
-  .stat-card { border: 1px solid #30363d; background-color: #161b22; border-radius: 8px; padding: 1.25rem; }
-  .stat-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .5px; color: #8b949e; }
-  .stat-value { font-size: 1.6rem; font-weight: 700; color: #c9d1d9; }
+  .stat-card { border: 1px solid var(--qbm-border); background-color: var(--qbm-bg-card); border-radius: 8px; padding: 1.25rem; }
+  .stat-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .5px; color: var(--qbm-text-muted); }
+  .stat-value { font-size: 1.6rem; font-weight: 700; color: var(--qbm-text); }
   .stat-icon  { font-size: 1.8rem; opacity: .6; }
 
   .state-bar { height: 8px; border-radius: 4px; transition: width .4s ease; }
@@ -16,7 +16,7 @@
 
 {% block content %}
 <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
-  <h4 class="mb-0 fw-bold text-white">
+  <h4 class="mb-0 fw-bold">
     <i class="bi bi-speedometer2 me-2 text-primary"></i><span data-i18n="dash.title"></span>
   </h4>
   <button class="btn btn-sm btn-outline-secondary" id="btn-dash-refresh">
@@ -58,8 +58,8 @@
       <i class="bi bi-hdd-stack-fill text-warning stat-icon"></i>
       <div style="min-width:0;flex:1;">
         <div class="stat-label" data-i18n="dash.disk_space"></div>
-        <div id="stat-disk-inline" style="font-size:.85rem;color:#c9d1d9;margin-top:.25rem;">—</div>
-        <div class="progress mt-2" style="height:5px;background:#21262d;">
+        <div id="stat-disk-inline" style="font-size:.85rem;color:var(--qbm-text);margin-top:.25rem;">—</div>
+        <div class="progress mt-2" style="height:5px;background:var(--qbm-progress-bg);">
           <div id="stat-disk-bar" class="progress-bar bg-warning" style="width:0%;border-radius:4px;"></div>
         </div>
       </div>
@@ -73,7 +73,7 @@
   <div class="col-12 col-xl-6">
     <div class="card h-100">
       <div class="card-header border-secondary">
-        <span class="fw-semibold text-white">
+        <span class="fw-semibold">
           <i class="bi bi-pie-chart-fill me-2 text-primary"></i><span data-i18n="dash.by_state"></span>
         </span>
       </div>
@@ -86,7 +86,7 @@
   <div class="col-12 col-xl-6">
     <div class="card h-100">
       <div class="card-header border-secondary d-flex gap-3">
-        <span class="fw-semibold text-white">
+        <span class="fw-semibold">
           <i class="bi bi-tags-fill me-2 text-primary"></i><span data-i18n="dash.by_category"></span>
         </span>
         <div class="ms-auto d-flex gap-2" style="font-size:.8rem;">
@@ -107,7 +107,7 @@
   <div class="col-12">
     <div class="card">
       <div class="card-header border-secondary">
-        <span class="fw-semibold text-white">
+        <span class="fw-semibold">
           <i class="bi bi-graph-up me-2 text-primary"></i><span data-i18n="dash.speed_chart"></span>
         </span>
       </div>
@@ -157,10 +157,10 @@ function renderByState(byState, total) {
     return `
       <div class="mb-3">
         <div class="d-flex justify-content-between align-items-center mb-1">
-          <span style="font-size:.85rem;color:#c9d1d9;">${__(g.label)}</span>
-          <span style="font-size:.82rem;color:#8b949e;">${count} <span style="font-size:.72rem;">(${pct}%)</span></span>
+          <span style="font-size:.85rem;color:var(--qbm-text);">${__(g.label)}</span>
+          <span style="font-size:.82rem;color:var(--qbm-text-muted);">${count} <span style="font-size:.72rem;">(${pct}%)</span></span>
         </div>
-        <div class="progress" style="height:8px;background:#21262d;">
+        <div class="progress" style="height:8px;background:var(--qbm-progress-bg);">
           <div class="progress-bar" style="width:${pct}%;background:${g.color};border-radius:4px;"></div>
         </div>
       </div>`;
@@ -205,7 +205,7 @@ function renderByCategory(byCategory, total) {
       return `
         <div class="d-flex align-items-center justify-content-between mb-2">
           <span class="badge bg-secondary category-pill">${label}</span>
-          <span style="font-size:.82rem;color:#8b949e;">${count} <span style="font-size:.72rem;">(${pct}%)</span></span>
+          <span style="font-size:.82rem;color:var(--qbm-text-muted);">${count} <span style="font-size:.72rem;">(${pct}%)</span></span>
         </div>`;
     }).join('');
 }
@@ -224,10 +224,10 @@ function renderSizeByCategory(sizeByCategory) {
     return `
       <div class="mb-3">
         <div class="d-flex justify-content-between align-items-center mb-1">
-          <span style="font-size:.85rem;color:#c9d1d9;">${label}</span>
-          <span style="font-size:.82rem;color:#8b949e;">${fmtSize(sz)} <span style="font-size:.72rem;">(${pct}%)</span></span>
+          <span style="font-size:.85rem;color:var(--qbm-text);">${label}</span>
+          <span style="font-size:.82rem;color:var(--qbm-text-muted);">${fmtSize(sz)} <span style="font-size:.72rem;">(${pct}%)</span></span>
         </div>
-        <div class="progress" style="height:6px;background:#21262d;">
+        <div class="progress" style="height:6px;background:var(--qbm-progress-bg);">
           <div class="progress-bar bg-info" style="width:${pct}%;border-radius:4px;"></div>
         </div>
       </div>`;
@@ -251,6 +251,10 @@ document.getElementById('cat-tab-size').addEventListener('click', () => {
 // ── Speed chart ──────────────────────────────────────────────────────────────
 const MAX_HISTORY = 20;
 const speedLabels = [], speedDL = [], speedUP = [];
+
+function getCSSVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
 
 const speedChart = new Chart(document.getElementById('speed-chart').getContext('2d'), {
   type: 'line',
@@ -277,15 +281,29 @@ const speedChart = new Chart(document.getElementById('speed-chart').getContext('
     responsive: true,
     animation: { duration: 300 },
     scales: {
-      x: { ticks: { color: '#8b949e', maxRotation: 0, maxTicksLimit: 8 }, grid: { color: '#21262d' } },
-      y: { ticks: { color: '#8b949e', callback: v => fmtSpeed(v) }, grid: { color: '#21262d' }, beginAtZero: true },
+      x: { ticks: { color: getCSSVar('--qbm-text-muted'), maxRotation: 0, maxTicksLimit: 8 }, grid: { color: getCSSVar('--qbm-border') } },
+      y: { ticks: { color: getCSSVar('--qbm-text-muted'), callback: v => fmtSpeed(v) }, grid: { color: getCSSVar('--qbm-border') }, beginAtZero: true },
     },
     plugins: {
-      legend: { labels: { color: '#c9d1d9' } },
+      legend: { labels: { color: getCSSVar('--qbm-text') } },
       tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmtSpeed(ctx.raw)}` } },
     },
   },
 });
+
+function updateChartTheme() {
+  const textMuted = getCSSVar('--qbm-text-muted');
+  const border    = getCSSVar('--qbm-border');
+  const text      = getCSSVar('--qbm-text');
+  speedChart.options.scales.x.ticks.color = textMuted;
+  speedChart.options.scales.x.grid.color  = border;
+  speedChart.options.scales.y.ticks.color = textMuted;
+  speedChart.options.scales.y.grid.color  = border;
+  speedChart.options.plugins.legend.labels.color = text;
+  speedChart.update();
+}
+
+document.addEventListener('qbm-theme-changed', updateChartTheme);
 
 function updateSpeedChart(dl, up) {
   const label = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });

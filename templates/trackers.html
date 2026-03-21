@@ -4,7 +4,7 @@
 {% block extra_head %}
 <style>
   .tracker-row { cursor: pointer; }
-  .tracker-row:hover td { background-color: rgba(88,166,255,.07) !important; }
+  .tracker-row:hover td { background-color: var(--qbm-hover-bg) !important; }
 
   #details-panel {
     max-height: 340px;
@@ -14,7 +14,7 @@
   .progress-step {
     font-size: .82rem;
     padding: 3px 0;
-    border-bottom: 1px solid #21262d;
+    border-bottom: 1px solid var(--qbm-border);
   }
   .progress-step:last-child { border-bottom: none; }
 
@@ -38,7 +38,7 @@
 
 {% block content %}
 <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-  <h4 class="mb-0 fw-bold text-white">
+  <h4 class="mb-0 fw-bold">
     <i class="bi bi-broadcast me-2 text-primary"></i><span data-i18n="trackers.title"></span>
   </h4>
   <button class="btn btn-sm btn-outline-secondary" id="btn-refresh-trackers">
@@ -62,7 +62,7 @@
   <div class="col-12 col-xl-7">
     <div class="card h-100">
       <div class="card-header border-secondary d-flex align-items-center justify-content-between">
-        <span class="fw-semibold text-white">
+        <span class="fw-semibold">
           <i class="bi bi-table me-2 text-primary"></i><span data-i18n="trackers.overview"></span>
         </span>
         <span id="tracker-count-badge" class="badge bg-secondary"></span>
@@ -80,7 +80,7 @@
 
           <!-- Status filter + Bulk delete toolbar -->
           <div class="px-3 pt-3 pb-2 d-flex align-items-center gap-2 flex-wrap">
-            <select class="form-select form-select-sm bg-dark border-secondary text-white" id="filter-tracker-status" style="max-width:160px;">
+            <select class="form-select form-select-sm" id="filter-tracker-status" style="max-width:160px;">
               <option value="" data-i18n="trackers.all_statuses"></option>
               <option value="ok"      data-i18n="trackers.status_ok"></option>
               <option value="error"   data-i18n="trackers.status_error"></option>
@@ -102,7 +102,7 @@
           <div class="table-responsive">
             <table id="trackers-table" class="table table-hover table-striped align-middle mb-0"
                    style="width:100%">
-              <thead class="table-dark">
+              <thead>
                 <tr>
                   <th style="width:36px;"></th>
                   <th></th>
@@ -120,7 +120,7 @@
         <div id="details-container" class="d-none border-top border-secondary">
           <div class="p-3">
             <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
-              <span class="fw-semibold text-white" id="details-title"></span>
+              <span class="fw-semibold" id="details-title"></span>
               <div class="d-flex align-items-center gap-2 flex-wrap">
                 <!-- Bulk actions on the detail torrents -->
                 <button class="btn btn-xs btn-outline-secondary" id="btn-detail-select-all" style="font-size:.75rem;padding:2px 8px;">
@@ -136,7 +136,7 @@
             </div>
             <div id="details-panel" style="max-height:380px;overflow-y:auto;">
               <table class="table table-sm table-hover align-middle mb-0">
-                <thead class="table-dark" style="position:sticky;top:0;">
+                <thead style="position:sticky;top:0;">
                   <tr>
                     <th style="width:32px;"><input type="checkbox" class="form-check-input" id="chk-detail-header"></th>
                     <th data-i18n="trackers.det_col_name"></th>
@@ -160,7 +160,7 @@
   <div class="col-12 col-xl-5">
     <div class="card">
       <div class="card-header border-secondary">
-        <span class="fw-semibold text-white">
+        <span class="fw-semibold">
           <i class="bi bi-gear me-2 text-primary"></i><span data-i18n="trackers.bulk_title"></span>
         </span>
       </div>
@@ -198,12 +198,12 @@
             <p class="text-secondary" style="font-size:.85rem;" data-i18n="trackers.replace_desc"></p>
             <div class="mb-3">
               <label class="form-label text-secondary fw-semibold" for="replace-old" data-i18n="trackers.replace_old_label"></label>
-              <input type="url" class="form-control bg-dark border-secondary text-white"
+              <input type="url" class="form-control"
                      id="replace-old" placeholder="https://old.tracker.example/announce" />
             </div>
             <div class="mb-3">
               <label class="form-label text-secondary fw-semibold" for="replace-new" data-i18n="trackers.replace_new_label"></label>
-              <input type="url" class="form-control bg-dark border-secondary text-white"
+              <input type="url" class="form-control"
                      id="replace-new" placeholder="https://new.tracker.example/announce" />
             </div>
             <button class="btn btn-primary w-100" id="btn-do-replace">
@@ -216,7 +216,7 @@
             <p class="text-secondary" style="font-size:.85rem;" data-i18n="trackers.add_desc"></p>
             <div class="mb-3">
               <label class="form-label text-secondary fw-semibold" for="add-url" data-i18n="trackers.add_label"></label>
-              <input type="url" class="form-control bg-dark border-secondary text-white"
+              <input type="url" class="form-control"
                      id="add-url" placeholder="https://tracker.example/announce" />
             </div>
             <button class="btn btn-success w-100" id="btn-do-add">
@@ -229,7 +229,7 @@
             <p class="text-secondary" style="font-size:.85rem;" data-i18n="trackers.remove_desc"></p>
             <div class="mb-3">
               <label class="form-label text-secondary fw-semibold" for="remove-url" data-i18n="trackers.remove_label"></label>
-              <input type="url" class="form-control bg-dark border-secondary text-white"
+              <input type="url" class="form-control"
                      id="remove-url" placeholder="https://old.tracker.example/announce" />
             </div>
             <button class="btn btn-danger w-100" id="btn-do-remove">
@@ -243,7 +243,7 @@
         <div id="bulk-results-wrapper" class="mt-4 d-none">
           <hr class="border-secondary" />
           <div class="d-flex align-items-center justify-content-between mb-2">
-            <span class="fw-semibold text-white" id="bulk-summary"></span>
+            <span class="fw-semibold" id="bulk-summary"></span>
             <button class="btn btn-sm btn-outline-secondary" id="btn-clear-results">
               <i class="bi bi-x"></i> <span data-i18n="trackers.results_clear"></span>
             </button>

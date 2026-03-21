@@ -19,7 +19,9 @@ Une interface web Flask légère pour gérer une instance qBittorrent à distanc
 - **Panneau détail** — clic sur un torrent pour afficher toutes ses informations dans un panneau latéral
 - **Interface multilingue** — français par défaut, anglais disponible via le bouton FR/EN dans la barre de navigation (préférence sauvegardée dans le navigateur)
 - **Dashboard** — vue d'ensemble avec vitesses globales, espace disque utilisé/disponible, graphique de vitesse en temps réel, répartition des torrents par état et par catégorie (nombre et espace disque)
-- **Filtres** — filtrer les torrents par état et par catégorie, filtrer les trackers par statut (OK / erreur / en attente)
+- **Filtres persistants** — filtrer les torrents par état et par catégorie, filtrer les trackers par statut (OK / erreur / en attente) ; tri et filtres mémorisés dans le navigateur
+- **Changement de catégorie** — modifier la catégorie d'un torrent directement depuis le panneau détail
+- **Notifications navigateur** — alerte automatique quand un torrent atteint 100%
 - **Liste des fichiers** — détail des fichiers d'un torrent avec taille et progression individuelle dans le panneau latéral
 
 ## Prérequis

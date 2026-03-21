@@ -5,6 +5,15 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.8.0] - 2026-03-21
+
+### Ajouté
+- Changement de catégorie directement depuis le panneau détail d'un torrent
+- Notifications navigateur quand un torrent atteint 100%
+- Tri et filtres persistants (état, catégorie) sauvegardés dans le navigateur (localStorage)
+
+---
+
 ## [1.7.0] - 2026-03-21
 
 ### Ajouté

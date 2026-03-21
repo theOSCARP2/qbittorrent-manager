@@ -200,11 +200,43 @@ function renderRow(t) {
   ];
 }
 
+// ── Préférences persistantes ──────────────────────────────────────────────────
+const PREF = {
+  get: (k, def = '') => localStorage.getItem('qbm-' + k) ?? def,
+  set: (k, v)        => localStorage.setItem('qbm-' + k, String(v)),
+};
+
+// ── Notifications navigateur ──────────────────────────────────────────────────
+let notifEnabled = false;
+const prevProgressMap = {};
+
+async function initNotifications() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'granted') { notifEnabled = true; return; }
+  if (Notification.permission === 'default') {
+    const p = await Notification.requestPermission();
+    notifEnabled = p === 'granted';
+  }
+}
+
+function checkCompletions(torrents) {
+  if (!notifEnabled) return;
+  torrents.forEach(t => {
+    const prev = prevProgressMap[t.hash];
+    const curr = t.progress ?? 0;
+    if (prev !== undefined && prev < 1 && curr >= 1) {
+      new Notification(__('notif.completed', { name: t.name }), { body: fmtSize(t.size) });
+    }
+    prevProgressMap[t.hash] = curr;
+  });
+}
+
 // ── Torrent data cache (raw) ─────────────────────────────────────────────────
 const torrentDataMap = {};
 let currentDetailHash  = null;
 let currentDetailProps = null;
 let currentDetailFiles = null;
+let availableCategories = [];
 
 // ── DataTable (server-side) ──────────────────────────────────────────────────
 let dt;
@@ -244,7 +276,8 @@ function initTable() {
             loadStates();
           }
 
-          // Stocker les données brutes pour le panneau détail
+          // Stocker les données brutes pour le panneau détail + vérifier complétion
+          checkCompletions(json.data || []);
           (json.data || []).forEach(t => torrentDataMap[t.hash] = t);
 
           // Mettre à jour le panneau si le torrent affiché est dans ce batch
@@ -278,7 +311,7 @@ function initTable() {
       { title: __('col.ratio'),    type: 'num' },
       { title: __('col.actions'),  orderable: false, searchable: false },
     ],
-    order: [[1, 'asc']],
+    order: [[parseInt(PREF.get('sort-col', '1')), PREF.get('sort-dir', 'asc')]],
     pageLength: 20,
     lengthMenu: [20, 50, 100, 200],
     language: {
@@ -290,6 +323,13 @@ function initTable() {
       lengthMenu: __('dt.per_page'),
       info: __('dt.info'),
     },
+  });
+
+  // Sauvegarder le tri dans localStorage
+  dt.on('order.dt', () => {
+    const [col, dir] = dt.order()[0];
+    PREF.set('sort-col', col);
+    PREF.set('sort-dir', dir);
   });
 
   // Réappliquer la surbrillance après chaque redraw
@@ -347,11 +387,16 @@ function renderDetailPanel(t, props, files) {
       </div>
     </div>
 
-    <!-- Catégorie -->
-    ${t.category ? `
+    <!-- Catégorie (modifiable) -->
     <div class="mb-3">
-      <span class="badge bg-secondary">${escHtml(t.category)}</span>
-    </div>` : ''}
+      <div class="detail-label mb-1">${__('detail.category_label')}</div>
+      <select id="detail-cat-select" class="form-select form-select-sm bg-dark border-secondary text-white" style="max-width:220px;">
+        <option value="" ${!t.category ? 'selected' : ''}>${__('detail.no_category')}</option>
+        ${[...new Set([...(t.category ? [t.category] : []), ...availableCategories])].sort().map(c =>
+          `<option value="${escHtml(c)}" ${c === (t.category||'') ? 'selected' : ''}>${escHtml(c)}</option>`
+        ).join('')}
+      </select>
+    </div>
 
     <!-- Stats -->
     <div class="row g-2 mb-3">
@@ -500,6 +545,36 @@ function closeDetailPanel() {
 
 document.getElementById('btn-close-detail').addEventListener('click', closeDetailPanel);
 
+// Changement de catégorie — délégation sur document
+document.addEventListener('change', async e => {
+  if (!e.target.matches('#detail-cat-select')) return;
+  const newCat = e.target.value;
+  const hash   = currentDetailHash;
+  if (!hash) return;
+
+  e.target.disabled = true;
+  try {
+    const resp = await fetch('/api/torrent/set-category', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hash, category: newCat }),
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      torrentDataMap[hash].category = newCat;
+      renderDetailPanel(torrentDataMap[hash], currentDetailProps, currentDetailFiles);
+      showToast(__('detail.category_updated'), 'success');
+      setTimeout(() => dt.ajax.reload(null, false), 500);
+    } else {
+      showToast(data.error || __('toast.failed'), 'danger');
+      e.target.disabled = false;
+    }
+  } catch (err) {
+    showToast(__('toast.failed') + ' : ' + err.message, 'danger');
+    e.target.disabled = false;
+  }
+});
+
 // Clic sur une ligne du tableau
 document.getElementById('torrents-table').addEventListener('click', e => {
   if (e.target.closest('input[type="checkbox"]') || e.target.closest('button')) return;
@@ -630,13 +705,32 @@ function loadStates() {
 }
 
 document.getElementById('filter-category').addEventListener('change', () => {
+  PREF.set('filter-category', document.getElementById('filter-category').value);
   dt.ajax.reload(null, false);
 });
 document.getElementById('filter-state').addEventListener('change', () => {
+  PREF.set('filter-state', document.getElementById('filter-state').value);
   dt.ajax.reload(null, false);
 });
 
 // ── Init ─────────────────────────────────────────────────────────────────────
+// Restaurer les filtres depuis localStorage
+document.getElementById('filter-state').value    = PREF.get('filter-state');
+document.getElementById('filter-category').value = PREF.get('filter-category');
+
+initNotifications();
 initTable();
+
+// Charger les catégories pour le panneau détail (qBit + cache)
+Promise.all([
+  fetch('/api/qb/categories').then(r => r.json()).catch(() => []),
+  fetch('/api/torrents/categories').then(r => r.json()).catch(() => []),
+]).then(([qbCats, cacheCats]) => {
+  const all = new Set([
+    ...(Array.isArray(qbCats)    ? qbCats    : []),
+    ...(Array.isArray(cacheCats) ? cacheCats : []),
+  ]);
+  availableCategories = [...all].sort();
+});
 </script>
 {% endblock %}

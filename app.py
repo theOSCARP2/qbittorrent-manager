@@ -464,6 +464,39 @@ def api_trackers():
     return jsonify(tracker_map)
 
 
+@app.route("/api/qb/categories")
+def api_qb_categories():
+    if not is_logged_in():
+        return jsonify({"error": "Not authenticated"}), 401
+    try:
+        resp = qb_request(session, "GET", "/api/v2/torrents/categories")
+        return jsonify(sorted(resp.json().keys()))
+    except RuntimeError as exc:
+        return jsonify({"error": str(exc)}), 502
+
+
+@app.route("/api/torrent/set-category", methods=["POST"])
+def api_torrent_set_category():
+    if not is_logged_in():
+        return jsonify({"error": "Not authenticated"}), 401
+    body  = request.get_json(force=True, silent=True) or {}
+    hash_ = body.get("hash", "").strip()
+    cat   = body.get("category", "").strip()
+    if not hash_:
+        return jsonify({"error": "Missing hash"}), 400
+    try:
+        qb_request(session, "POST", "/api/v2/torrents/setCategory",
+                   data={"hashes": hash_, "category": cat})
+        with _cache._lock:
+            for t in _cache._data:
+                if t.get("hash") == hash_:
+                    t["category"] = cat
+                    break
+        return jsonify({"ok": True})
+    except RuntimeError as exc:
+        return jsonify({"error": str(exc)}), 502
+
+
 @app.route("/api/torrent/files")
 def api_torrent_files():
     if not is_logged_in():

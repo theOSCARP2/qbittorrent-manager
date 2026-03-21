@@ -22,19 +22,16 @@
 {% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+<div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
   <h4 class="mb-0 fw-bold text-white">
     <i class="bi bi-list-ul me-2 text-primary"></i>Torrents
     <span id="torrent-count" class="badge bg-secondary ms-2 fw-normal" style="font-size:.75rem;"></span>
   </h4>
   <div class="d-flex align-items-center gap-2">
     <span id="cache-status" class="text-secondary small"></span>
-    <select class="form-select form-select-sm bg-dark border-secondary text-white" id="filter-state" style="max-width:170px;">
-      <option value="" data-i18n="torrents.all_states"></option>
-    </select>
-    <select class="form-select form-select-sm bg-dark border-secondary text-white" id="filter-category" style="max-width:170px;">
-      <option value="" data-i18n="torrents.all_categories"></option>
-    </select>
+    <button class="btn btn-sm btn-primary text-nowrap" id="btn-add-torrent">
+      <i class="bi bi-plus-circle me-1"></i><span data-i18n="add.title"></span>
+    </button>
     <button class="btn btn-sm btn-outline-secondary" id="btn-refresh">
       <i class="bi bi-arrow-clockwise me-1"></i><span data-i18n="torrents.refresh"></span>
     </button>
@@ -104,6 +101,61 @@
   </div>
 
 </div><!-- /main-row -->
+
+<!-- Add torrent modal -->
+<div class="modal fade" id="addModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark border-secondary">
+      <div class="modal-header border-secondary">
+        <h5 class="modal-title text-white">
+          <i class="bi bi-plus-circle me-2 text-primary"></i><span data-i18n="add.title"></span>
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Onglets -->
+        <div class="d-flex gap-2 mb-3">
+          <button class="btn btn-sm btn-primary" id="add-tab-magnet"><i class="bi bi-magnet me-1"></i><span data-i18n="add.tab_magnet"></span></button>
+          <button class="btn btn-sm btn-outline-secondary" id="add-tab-file"><i class="bi bi-file-earmark me-1"></i><span data-i18n="add.tab_file"></span></button>
+        </div>
+        <!-- Magnet / URL -->
+        <div id="add-panel-magnet">
+          <label class="form-label text-secondary small" data-i18n="add.magnet_label"></label>
+          <textarea id="add-urls" class="form-control bg-dark border-secondary text-white" rows="3"
+                    placeholder="magnet:?xt=urn:btih:..."></textarea>
+        </div>
+        <!-- Fichier .torrent -->
+        <div id="add-panel-file" style="display:none;">
+          <label class="form-label text-secondary small" data-i18n="add.file_label"></label>
+          <input type="file" id="add-file" class="form-control bg-dark border-secondary text-white" accept=".torrent">
+        </div>
+        <!-- Options communes -->
+        <div class="mt-3 d-flex flex-column gap-2">
+          <div>
+            <label class="form-label text-secondary small mb-1" data-i18n="add.category_label"></label>
+            <select id="add-category" class="form-select form-select-sm bg-dark border-secondary text-white">
+              <option value="" data-i18n="detail.no_category"></option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label text-secondary small mb-1" data-i18n="add.savepath_label"></label>
+            <input type="text" id="add-savepath" class="form-control form-control-sm bg-dark border-secondary text-white">
+          </div>
+          <div class="form-check">
+            <input type="checkbox" class="form-check-input" id="add-paused">
+            <label class="form-check-label text-secondary" for="add-paused" data-i18n="add.paused"></label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer border-secondary">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="modal.cancel"></button>
+        <button type="button" class="btn btn-primary" id="btn-add-confirm">
+          <i class="bi bi-plus-circle me-1"></i><span data-i18n="add.submit"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Delete modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1">
@@ -233,14 +285,31 @@ function checkCompletions(torrents) {
 
 // ── Torrent data cache (raw) ─────────────────────────────────────────────────
 const torrentDataMap = {};
-let currentDetailHash  = null;
-let currentDetailProps = null;
-let currentDetailFiles = null;
+let currentDetailHash     = null;
+let currentDetailProps    = null;
+let currentDetailFiles    = null;
+let currentDetailTrackers = null;
+let detailRefreshTimer    = null;
 let availableCategories = [];
 
 // ── DataTable (server-side) ──────────────────────────────────────────────────
 let dt;
 let pollTimer = null;
+
+function addHeaderFilter(api, colIdx, id, placeholder) {
+  const th  = api.column(colIdx).header();
+  const sel = document.createElement('select');
+  sel.id = id;
+  sel.className = 'form-select form-select-sm bg-dark border-0 text-white mt-1';
+  sel.style.cssText = 'font-size:.72rem;padding:2px 4px;min-width:100px;';
+  sel.innerHTML = `<option value="">${placeholder}</option>`;
+  sel.addEventListener('click',  e => e.stopPropagation());
+  sel.addEventListener('change', () => {
+    PREF.set(id.replace('filter-', ''), sel.value);
+    dt.ajax.reload(null, false);
+  });
+  th.appendChild(sel);
+}
 
 function initTable() {
   dt = $('#torrents-table').DataTable({
@@ -254,8 +323,8 @@ function initTable() {
         'search[value]':    dtParams.search.value,
         'order[0][column]': dtParams.order[0].column,
         'order[0][dir]':    dtParams.order[0].dir,
-        category:           document.getElementById('filter-category').value,
-        state:              document.getElementById('filter-state').value,
+        category:           document.getElementById('filter-category')?.value ?? PREF.get('filter-category'),
+        state:              document.getElementById('filter-state')?.value    ?? PREF.get('filter-state'),
       });
       fetch('/api/torrents?' + params)
         .then(r => r.json())
@@ -269,12 +338,9 @@ function initTable() {
           document.getElementById('loading-bar').style.display = 'none';
           document.getElementById('cache-status').textContent = '';
 
-          // Peupler les filtres au premier chargement seulement
-          if (!filtersLoaded) {
-            filtersLoaded = true;
-            loadCategories();
-            loadStates();
-          }
+          // Mettre à jour les filtres à chaque chargement
+          loadCategories();
+          loadStates();
 
           // Stocker les données brutes pour le panneau détail + vérifier complétion
           checkCompletions(json.data || []);
@@ -282,7 +348,7 @@ function initTable() {
 
           // Mettre à jour le panneau si le torrent affiché est dans ce batch
           if (currentDetailHash && torrentDataMap[currentDetailHash]) {
-            renderDetailPanel(torrentDataMap[currentDetailHash], currentDetailProps, currentDetailFiles);
+            renderDetailPanel(torrentDataMap[currentDetailHash], currentDetailProps, currentDetailFiles, currentDetailTrackers);
           }
 
           callback({
@@ -312,6 +378,12 @@ function initTable() {
       { title: __('col.actions'),  orderable: false, searchable: false },
     ],
     order: [[parseInt(PREF.get('sort-col', '1')), PREF.get('sort-dir', 'asc')]],
+    initComplete: function() {
+      addHeaderFilter(this.api(), 2, 'filter-category', __('torrents.all_categories'));
+      addHeaderFilter(this.api(), 5, 'filter-state',    __('torrents.all_states'));
+      document.getElementById('filter-category').value = PREF.get('filter-category');
+      document.getElementById('filter-state').value    = PREF.get('filter-state');
+    },
     pageLength: 20,
     lengthMenu: [20, 50, 100, 200],
     language: {
@@ -362,7 +434,7 @@ function schedulePoll() {
 }
 
 // ── Detail panel ─────────────────────────────────────────────────────────────
-function renderDetailPanel(t, props, files) {
+function renderDetailPanel(t, props, files, trackers) {
   const pct   = Math.round((t.progress || 0) * 100);
   const cls   = STATE_MAP[t.state] || 'bg-secondary';
   const label = stateLabel(t.state);
@@ -474,6 +546,31 @@ function renderDetailPanel(t, props, files) {
       })()}
     </div>
 
+    <!-- Trackers -->
+    <div class="mb-3">
+      <div class="detail-label mb-2">${__('detail.trackers')}${trackers && trackers.length ? ` <span class="text-secondary">(${trackers.length})</span>` : ''}</div>
+      ${(() => {
+        if (trackers === null) return `<div class="text-secondary" style="font-size:.82rem;">…</div>`;
+        if (!trackers.length)  return `<div class="text-secondary" style="font-size:.82rem;">${__('detail.no_trackers')}</div>`;
+        return trackers.map(tr => {
+          const st = tr.status ?? 1;
+          // 0=désactivé, 1=non contacté, 2=OK, 3=mise à jour, 4=erreur
+          const icon  = st === 2 ? 'bi-check-circle-fill text-success'
+                      : st === 4 ? 'bi-x-circle-fill text-danger'
+                      : st === 3 ? 'bi-arrow-repeat text-warning'
+                      :            'bi-circle text-secondary';
+          const title = st === 2 ? 'OK'
+                      : st === 4 ? (tr.msg || 'Erreur')
+                      : st === 3 ? 'Mise à jour…'
+                      :            'Non contacté';
+          return `<div class="d-flex align-items-center gap-2 mb-1">
+            <i class="bi ${icon} flex-shrink-0" title="${escHtml(title)}" style="font-size:.85rem;"></i>
+            <span style="font-size:.78rem;color:#c9d1d9;word-break:break-all;">${escHtml(tr.url || '—')}</span>
+          </div>`;
+        }).join('');
+      })()}
+    </div>
+
     <!-- Hash -->
     <div class="mb-3">
       <div class="detail-label mb-1">${__('detail.hash')}</div>
@@ -502,12 +599,13 @@ async function openDetailPanel(hash) {
   const t = torrentDataMap[hash];
   if (!t) return;
 
-  currentDetailHash  = hash;
-  currentDetailProps = null;
-  currentDetailFiles = null;
+  currentDetailHash     = hash;
+  currentDetailProps    = null;
+  currentDetailFiles    = null;
+  currentDetailTrackers = null;
 
   // Affichage immédiat avec les données disponibles (props/files en cours de chargement)
-  renderDetailPanel(t, null, null);
+  renderDetailPanel(t, null, null, null);
 
   // Surbrillance de la ligne
   document.querySelectorAll('#torrents-table tbody tr').forEach(r => r.classList.remove('selected-row'));
@@ -518,26 +616,36 @@ async function openDetailPanel(hash) {
   document.getElementById('table-col').className = 'col-12 col-xl-7';
   document.getElementById('detail-col').classList.remove('d-none');
 
-  // Fetch des propriétés et fichiers en parallèle
+  // Refresh automatique du panneau toutes les 5s
+  clearInterval(detailRefreshTimer);
+  detailRefreshTimer = setInterval(() => dt.ajax.reload(null, false), 5000);
+
+  // Fetch des propriétés, fichiers et trackers en parallèle
   try {
-    const [propsResp, filesResp] = await Promise.all([
+    const [propsResp, filesResp, trackersResp] = await Promise.all([
       fetch(`/api/torrent/properties?hash=${hash}`),
       fetch(`/api/torrent/files?hash=${hash}`),
+      fetch(`/api/torrent/trackers?hash=${hash}`),
     ]);
-    const props = await propsResp.json();
-    const files = await filesResp.json();
+    const props    = await propsResp.json();
+    const files    = await filesResp.json();
+    const trackers = await trackersResp.json();
     if (currentDetailHash === hash) {
-      currentDetailProps = props.error ? null : props;
-      currentDetailFiles = Array.isArray(files) ? files : null;
-      renderDetailPanel(t, currentDetailProps, currentDetailFiles);
+      currentDetailProps    = props.error ? null : props;
+      currentDetailFiles    = Array.isArray(files) ? files : null;
+      currentDetailTrackers = Array.isArray(trackers) ? trackers : null;
+      renderDetailPanel(t, currentDetailProps, currentDetailFiles, currentDetailTrackers);
     }
   } catch (_) {}
 }
 
 function closeDetailPanel() {
-  currentDetailHash  = null;
-  currentDetailProps = null;
-  currentDetailFiles = null;
+  currentDetailHash     = null;
+  currentDetailProps    = null;
+  currentDetailFiles    = null;
+  currentDetailTrackers = null;
+  clearInterval(detailRefreshTimer);
+  detailRefreshTimer = null;
   document.getElementById('detail-col').classList.add('d-none');
   document.getElementById('table-col').className = 'col-12';
   document.querySelectorAll('#torrents-table tbody tr').forEach(r => r.classList.remove('selected-row'));
@@ -642,6 +750,78 @@ document.getElementById('btn-delete-selected').addEventListener('click',  () => 
 });
 document.getElementById('btn-refresh').addEventListener('click', () => dt.ajax.reload(null, false));
 
+// ── Add torrent modal ─────────────────────────────────────────────────────────
+let addActiveTab = 'magnet';
+const addModal   = new bootstrap.Modal(document.getElementById('addModal'));
+
+function addSwitchTab(tab) {
+  addActiveTab = tab;
+  document.getElementById('add-panel-magnet').style.display = tab === 'magnet' ? '' : 'none';
+  document.getElementById('add-panel-file').style.display   = tab === 'file'   ? '' : 'none';
+  document.getElementById('add-tab-magnet').className = 'btn btn-sm ' + (tab === 'magnet' ? 'btn-primary' : 'btn-outline-secondary');
+  document.getElementById('add-tab-file').className   = 'btn btn-sm ' + (tab === 'file'   ? 'btn-primary' : 'btn-outline-secondary');
+}
+
+document.getElementById('add-tab-magnet').addEventListener('click', () => addSwitchTab('magnet'));
+document.getElementById('add-tab-file').addEventListener('click',   () => addSwitchTab('file'));
+
+document.getElementById('btn-add-torrent').addEventListener('click', () => {
+  // Pré-remplir le select catégorie
+  const sel = document.getElementById('add-category');
+  sel.innerHTML = `<option value="">${__('detail.no_category')}</option>`;
+  availableCategories.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c; o.textContent = c;
+    sel.appendChild(o);
+  });
+  // Reset
+  document.getElementById('add-urls').value  = '';
+  document.getElementById('add-file').value  = '';
+  document.getElementById('add-savepath').value = '';
+  document.getElementById('add-paused').checked = false;
+  addSwitchTab('magnet');
+  addModal.show();
+});
+
+document.getElementById('btn-add-confirm').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-add-confirm');
+  const fd  = new FormData();
+
+  if (addActiveTab === 'magnet') {
+    const urls = document.getElementById('add-urls').value.trim();
+    if (!urls) { showToast(__('add.required'), 'warning'); return; }
+    fd.append('urls', urls);
+  } else {
+    const file = document.getElementById('add-file').files[0];
+    if (!file) { showToast(__('add.required'), 'warning'); return; }
+    fd.append('torrents', file, file.name);
+  }
+
+  const category = document.getElementById('add-category').value;
+  const savepath = document.getElementById('add-savepath').value.trim();
+  const paused   = document.getElementById('add-paused').checked ? 'true' : 'false';
+  if (category) fd.append('category', category);
+  if (savepath) fd.append('savepath', savepath);
+  fd.append('paused', paused);
+
+  btn.disabled = true;
+  try {
+    const resp = await fetch('/api/torrent/add', { method: 'POST', body: fd });
+    const data = await resp.json();
+    if (data.ok) {
+      addModal.hide();
+      showToast(__('add.success'), 'success');
+      setTimeout(() => dt.ajax.reload(null, false), 1500);
+    } else {
+      showToast(data.error || __('add.error'), 'danger');
+    }
+  } catch (err) {
+    showToast(__('add.error') + ' ' + err.message, 'danger');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 // ── Delete modal ─────────────────────────────────────────────────────────────
 let pendingDeleteHashes = [];
 const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
@@ -668,7 +848,6 @@ document.getElementById('btn-confirm-delete').addEventListener('click', async ()
 });
 
 // ── Category / State filters ─────────────────────────────────────────────────
-let filtersLoaded = false;
 
 function loadCategories() {
   fetch('/api/torrents/categories')
@@ -704,20 +883,8 @@ function loadStates() {
     });
 }
 
-document.getElementById('filter-category').addEventListener('change', () => {
-  PREF.set('filter-category', document.getElementById('filter-category').value);
-  dt.ajax.reload(null, false);
-});
-document.getElementById('filter-state').addEventListener('change', () => {
-  PREF.set('filter-state', document.getElementById('filter-state').value);
-  dt.ajax.reload(null, false);
-});
 
 // ── Init ─────────────────────────────────────────────────────────────────────
-// Restaurer les filtres depuis localStorage
-document.getElementById('filter-state').value    = PREF.get('filter-state');
-document.getElementById('filter-category').value = PREF.get('filter-category');
-
 initNotifications();
 initTable();
 

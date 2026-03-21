@@ -497,6 +497,59 @@ def api_torrent_set_category():
         return jsonify({"error": str(exc)}), 502
 
 
+@app.route("/api/torrent/add", methods=["POST"])
+def api_torrent_add():
+    if not is_logged_in():
+        return jsonify({"error": "Not authenticated"}), 401
+
+    savepath = request.form.get("savepath", "").strip()
+    category = request.form.get("category", "").strip()
+    paused   = request.form.get("paused", "false")
+
+    form_data = {"paused": paused}
+    if savepath: form_data["savepath"] = savepath
+    if category: form_data["category"] = category
+
+    try:
+        if "torrents" in request.files:
+            f = request.files["torrents"]
+            resp = qb_request(
+                session, "POST", "/api/v2/torrents/add",
+                files={"torrents": (f.filename, f.read(), "application/x-bittorrent")},
+                data=form_data,
+            )
+        else:
+            urls = request.form.get("urls", "").strip()
+            if not urls:
+                return jsonify({"error": "No URL or file provided"}), 400
+            form_data["urls"] = urls
+            resp = qb_request(session, "POST", "/api/v2/torrents/add", data=form_data)
+
+        if resp.text.strip() == "Ok.":
+            session_snapshot = {"qb_url": session["qb_url"], "qb_sid": session["qb_sid"]}
+            _cache.invalidate()
+            _start_bg_fetch(session_snapshot)
+            return jsonify({"ok": True})
+        return jsonify({"error": resp.text.strip()}), 400
+    except RuntimeError as exc:
+        return jsonify({"error": str(exc)}), 502
+
+
+@app.route("/api/torrent/trackers")
+def api_torrent_trackers():
+    if not is_logged_in():
+        return jsonify({"error": "Not authenticated"}), 401
+    hash_ = request.args.get("hash", "").strip()
+    if not hash_:
+        return jsonify({"error": "Missing hash"}), 400
+    try:
+        resp = qb_request(session, "GET", f"/api/v2/torrents/trackers?hash={hash_}")
+        trackers = [t for t in resp.json() if not t.get("url", "").startswith("** ")]
+        return jsonify(trackers)
+    except RuntimeError as exc:
+        return jsonify({"error": str(exc)}), 502
+
+
 @app.route("/api/torrent/files")
 def api_torrent_files():
     if not is_logged_in():

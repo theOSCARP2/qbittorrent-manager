@@ -5,6 +5,23 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.9.0] - 2026-03-21
+
+### Ajouté
+- Ajout de torrents depuis l'interface : lien magnet/URL ou fichier .torrent, avec options catégorie, répertoire et démarrage en pause
+- Trackers dans le panneau détail avec icône de statut (actif / erreur / en attente)
+- Filtres état et catégorie intégrés directement dans les en-têtes du tableau
+
+### Modifié
+- Filtres état et catégorie se mettent à jour à chaque rechargement (plus de garde au premier chargement uniquement)
+- Panneau détail : rafraîchissement automatique toutes les 5 secondes quand il est ouvert
+
+### Corrigé
+- Filtre des états non actualisé après l'ajout d'un torrent
+- Erreur `null` sur les filtres lors du premier appel ajax (avant `initComplete`)
+
+---
+
 ## [1.8.0] - 2026-03-21
 
 ### Ajouté

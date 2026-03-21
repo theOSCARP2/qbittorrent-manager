@@ -5,6 +5,19 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.12.0] - 2026-03-22
+
+### Ajouté
+- Priorité des fichiers dans le panneau détail : menu déroulant par fichier (Ne pas DL / Normal / Haute / Maximum) via `/api/v2/torrents/filePrio`
+- Mode debug activable/désactivable depuis l'interface web (bouton 🐛 dans la navbar) sans redémarrer l'application
+
+### Modifié
+- Logs console plus lisibles pour l'utilisateur final (niveau INFO par défaut, format heure + niveau + message)
+- Suppression du mode debug système (`FLASK_DEBUG`) — remplacé par le toggle in-app
+- Message de démarrage amélioré avec version et URL
+
+---
+
 ## [1.11.1] - 2026-03-21
 
 ### Corrigé

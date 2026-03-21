@@ -528,15 +528,33 @@ function renderDetailPanel(t, props, files, trackers) {
       ${(() => {
         if (files === null) return `<div class="text-secondary" style="font-size:.82rem;">…</div>`;
         if (!files.length)  return `<div class="text-secondary" style="font-size:.82rem;">${__('detail.no_files')}</div>`;
-        return `<div style="max-height:200px;overflow-y:auto;padding-right:4px;">` +
-          files.map(f => {
+        const prioLabel = p => {
+          if (p === 0) return __('file.prio_skip');
+          if (p === 6) return __('file.prio_high');
+          if (p === 7) return __('file.prio_max');
+          return __('file.prio_normal');
+        };
+        return `<div style="max-height:240px;overflow-y:auto;padding-right:4px;">` +
+          files.map((f, idx) => {
             const pct    = Math.round((f.progress || 0) * 100);
             const pbCls  = pct >= 100 ? 'bg-success' : pct >= 50 ? 'bg-primary' : 'bg-warning';
             const name   = f.name ? f.name.split('/').pop() : '—';
+            const prio   = f.priority ?? 1;
+            const fileId = f.index ?? idx;
             return `<div class="mb-2">
-              <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+              <div class="d-flex align-items-start gap-2 mb-1">
                 <span style="font-size:.78rem;color:var(--qbm-text);word-break:break-word;flex:1;" title="${escHtml(f.name||'')}">${escHtml(name)}</span>
-                <span style="font-size:.72rem;color:var(--qbm-text-muted);white-space:nowrap;">${fmtSize(f.size)}</span>
+                <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                  <span style="font-size:.72rem;color:var(--qbm-text-muted);white-space:nowrap;">${fmtSize(f.size)}</span>
+                  <select class="form-select form-select-sm file-prio-select"
+                          data-hash="${escHtml(currentDetailHash)}" data-id="${fileId}"
+                          style="font-size:.7rem;padding:1px 2px 1px 4px;min-width:90px;">
+                    <option value="0" ${prio===0?'selected':''}>${prioLabel(0)}</option>
+                    <option value="1" ${prio===1||prio===4?'selected':''}>${prioLabel(1)}</option>
+                    <option value="6" ${prio===6?'selected':''}>${prioLabel(6)}</option>
+                    <option value="7" ${prio===7?'selected':''}>${prioLabel(7)}</option>
+                  </select>
+                </div>
               </div>
               <div class="progress" style="height:4px;background:var(--qbm-progress-bg);">
                 <div class="progress-bar ${pbCls}" style="width:${pct}%;"></div>
@@ -680,6 +698,29 @@ document.addEventListener('change', async e => {
   } catch (err) {
     showToast(__('toast.failed') + ' : ' + err.message, 'danger');
     e.target.disabled = false;
+  }
+});
+
+// ── Changement de priorité de fichier ───────────────────────────────────────
+document.addEventListener('change', async e => {
+  if (!e.target.matches('.file-prio-select')) return;
+  const sel      = e.target;
+  const hash     = sel.dataset.hash;
+  const id       = parseInt(sel.dataset.id, 10);
+  const priority = parseInt(sel.value, 10);
+  sel.disabled = true;
+  try {
+    const resp = await fetch('/api/torrent/set-file-priority', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hash, id, priority }),
+    });
+    const data = await resp.json();
+    if (!data.ok) showToast(data.error || __('toast.failed'), 'danger');
+  } catch (err) {
+    showToast(__('toast.failed') + ' : ' + err.message, 'danger');
+  } finally {
+    sel.disabled = false;
   }
 });
 

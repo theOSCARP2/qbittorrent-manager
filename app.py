@@ -59,12 +59,28 @@ _cache = _TorrentCache()
 # ---------------------------------------------------------------------------
 # App
 # ---------------------------------------------------------------------------
-logging.basicConfig(level=logging.DEBUG, format="[%(asctime)s] %(levelname)s %(message)s")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s  %(levelname)-8s %(message)s",
+    datefmt="%H:%M:%S",
+)
 log = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Debug mode (togglable at runtime via the web UI)
+# ---------------------------------------------------------------------------
+_debug_mode = False
+
+def _set_debug(enabled: bool):
+    global _debug_mode
+    _debug_mode = enabled
+    level = logging.DEBUG if enabled else logging.INFO
+    logging.getLogger().setLevel(level)
+    log.setLevel(level)
 
 app = Flask(__name__)
 
-APP_VERSION   = "1.11.1"
+APP_VERSION   = "1.12.0"
 GITHUB_REPO   = "theOSCARP2/qbittorrent-manager"
 _version_cache: dict = {"latest": None, "ts": 0.0}
 VERSION_CACHE_TTL = 3600  # 1 heure
@@ -161,7 +177,7 @@ def qb_request(session_data, method, endpoint, **kwargs):
     try:
         t0 = time.monotonic()
         resp = _qb_sessions[sid].request(method, url, timeout=30, **kwargs)
-        log.debug("qb_request %s %s → %s in %.2fs", method, endpoint, resp.status_code, time.monotonic()-t0)
+        log.debug("qb %s %s → %s (%.2fs)", method, endpoint, resp.status_code, time.monotonic()-t0)
         resp.raise_for_status()
         return resp
     except requests.exceptions.ConnectionError as exc:
@@ -179,31 +195,27 @@ def is_logged_in():
 
 def _fetch_and_cache(session_snapshot: dict):
     """Fetch all torrents from qBittorrent and store in cache."""
-    log.debug("→ _fetch_and_cache: start (url=%s)", session_snapshot.get("qb_url"))
+    log.debug("Récupération du cache (url=%s)", session_snapshot.get("qb_url"))
     t0 = time.monotonic()
     try:
         resp = qb_request(session_snapshot, "GET", "/api/v2/torrents/info")
-        log.debug("   HTTP %s in %.2fs, content-length=%s",
-                  resp.status_code, time.monotonic() - t0,
-                  resp.headers.get("content-length", "?"))
+        log.debug("Réponse HTTP %s en %.2fs", resp.status_code, time.monotonic() - t0)
         raw = resp.json()
-        log.debug("   Parsed %d torrents", len(raw))
         slim = [{k: t[k] for k in _TORRENT_FIELDS if k in t} for t in raw]
         _cache.set(slim)
-        log.debug("← _fetch_and_cache: done in %.2fs, %d torrents cached",
-                  time.monotonic() - t0, len(slim))
+        log.info("Cache actualisé — %d torrents (%.1fs)", len(slim), time.monotonic() - t0)
     except Exception as exc:
-        log.error("   _fetch_and_cache ERROR: %s", exc, exc_info=True)
+        log.error("Erreur lors du rafraîchissement du cache : %s", exc)
         _cache.cancel_refresh()
 
 
 def _start_bg_fetch(session_snapshot: dict):
     """Start a background fetch only if not already running."""
     if _cache.start_refresh():
-        log.debug("Starting background fetch thread")
+        log.debug("Démarrage du thread de mise à jour du cache")
         threading.Thread(target=_fetch_and_cache, args=(session_snapshot,), daemon=True).start()
     else:
-        log.debug("Background fetch already in progress, skipping")
+        log.debug("Mise à jour du cache déjà en cours")
 
 
 # ---------------------------------------------------------------------------
@@ -245,7 +257,7 @@ def login():
                 session["qb_username"] = username
 
                 # ── Start fetching torrents in background immediately at login
-                log.debug("Login OK for %s @ %s — starting bg fetch", username, qb_url)
+                log.info("Connexion : %s @ %s", username or "(anonyme)", qb_url)
                 _cache.invalidate()
                 _start_bg_fetch({"qb_url": qb_url, "qb_sid": sid})
 
@@ -339,7 +351,7 @@ def torrents():
         return redirect(url_for("login"))
     # Pre-warm cache if empty (e.g. user arrives directly without fresh login)
     if not _cache.is_ready():
-        log.debug("/torrents: cache empty, pre-warming")
+        log.debug("Cache vide, démarrage du préchauffage")
         _start_bg_fetch({"qb_url": session["qb_url"], "qb_sid": session["qb_sid"]})
     return render_template("torrents.html")
 
@@ -378,7 +390,7 @@ def api_torrents():
 
     # If cache is empty, start background fetch (if not already running)
     if not _cache.is_ready():
-        log.debug("/api/torrents: cache empty, starting bg fetch")
+        log.debug("Cache vide, démarrage de la récupération")
         _start_bg_fetch(session_snapshot)
         draw = int(request.args.get("draw", 1))
         return jsonify({"draw": draw, "recordsTotal": 0, "recordsFiltered": 0,
@@ -386,7 +398,7 @@ def api_torrents():
 
     # Trigger background refresh if stale
     if _cache.age() > CACHE_TTL:
-        log.debug("/api/torrents: cache stale (%.0fs), refreshing in bg", _cache.age())
+        log.debug("Cache expiré (%.0fs), rafraîchissement en arrière-plan", _cache.age())
         _start_bg_fetch(session_snapshot)
 
     data = _cache.get()
@@ -679,6 +691,39 @@ def api_torrent_action():
         return jsonify({"error": str(exc)}), 502
 
 
+@app.route("/api/debug/status")
+def api_debug_status():
+    return jsonify({"debug": _debug_mode})
+
+
+@app.route("/api/debug/toggle", methods=["POST"])
+def api_debug_toggle():
+    if not is_logged_in():
+        return jsonify({"error": "Not authenticated"}), 401
+    _set_debug(not _debug_mode)
+    log.info("Mode debug %s", "activé" if _debug_mode else "désactivé")
+    return jsonify({"debug": _debug_mode})
+
+
+@app.route("/api/torrent/set-file-priority", methods=["POST"])
+def api_torrent_set_file_priority():
+    if not is_logged_in():
+        return jsonify({"error": "Not authenticated"}), 401
+    body     = request.get_json(force=True, silent=True) or {}
+    hash_    = body.get("hash", "").strip()
+    file_id  = body.get("id")
+    priority = body.get("priority")
+    if not hash_ or file_id is None or priority is None:
+        return jsonify({"error": "Missing parameters"}), 400
+    try:
+        qb_request(session, "POST", "/api/v2/torrents/filePrio",
+                   data={"hash": hash_, "id": str(file_id), "priority": str(priority)})
+        log.debug("Priorité fichier %s[%s] → %s", hash_[:8], file_id, priority)
+        return jsonify({"ok": True})
+    except RuntimeError as exc:
+        return jsonify({"error": str(exc)}), 502
+
+
 @app.route("/api/tracker/bulk", methods=["POST"])
 def api_tracker_bulk():
     if not is_logged_in():
@@ -813,9 +858,10 @@ def api_tracker_delete_many():
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    if os.environ.get("FLASK_DEBUG") == "1":
-        app.run(debug=True, host="0.0.0.0", port=5000)
-    else:
-        from waitress import serve
-        log.info("Serveur démarré sur http://0.0.0.0:5000")
-        serve(app, host="0.0.0.0", port=5000, threads=4)
+    from waitress import serve
+    log.info("━" * 42)
+    log.info("  qBittorrent Manager v%s", APP_VERSION)
+    log.info("  http://localhost:5000")
+    log.info("  Mode debug : désactivé (bouton 🐛 dans l'interface)")
+    log.info("━" * 42)
+    serve(app, host="0.0.0.0", port=5000, threads=4)

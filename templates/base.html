@@ -205,6 +205,7 @@
         </span>
         <button class="btn btn-sm btn-outline-secondary" id="btn-lang" title="Switch language"></button>
         <button class="btn btn-sm btn-outline-secondary" id="btn-theme" title="Toggle theme"><i id="theme-icon" class="bi bi-moon-stars-fill"></i></button>
+        <button class="btn btn-sm btn-outline-secondary" id="btn-debug" title="Mode debug"><i class="bi bi-bug"></i></button>
         <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-danger">
           <i class="bi bi-box-arrow-right me-1"></i><span data-i18n="nav.logout"></span>
         </a>
@@ -381,6 +382,11 @@ const TRANSLATIONS = {
     'dash.size_by_category': 'Espace par catégorie',
     'state.stoppedUP':     'Arrêté',
     'state.stoppedDL':     'Arrêté',
+    // Priorité fichiers
+    'file.prio_skip':   'Ne pas DL',
+    'file.prio_normal': 'Normal',
+    'file.prio_high':   'Haute',
+    'file.prio_max':    'Maximum',
     // Actions
     'action.resume':      'Reprendre',
     'action.pause':       'Pause',
@@ -609,6 +615,11 @@ const TRANSLATIONS = {
     'dash.size_by_category': 'Space by category',
     'state.stoppedUP':     'Stopped',
     'state.stoppedDL':     'Stopped',
+    // File priority
+    'file.prio_skip':   'Skip',
+    'file.prio_normal': 'Normal',
+    'file.prio_high':   'High',
+    'file.prio_max':    'Maximum',
     // Actions
     'action.resume':        'Resume',
     'action.pause':         'Pause',
@@ -768,6 +779,26 @@ document.addEventListener('DOMContentLoaded', () => {
       const next = (localStorage.getItem('qbm-theme') || 'dark') === 'dark' ? 'light' : 'dark';
       localStorage.setItem('qbm-theme', next);
       applyTheme(next);
+    });
+  }
+
+  // Debug
+  const btnDebug = document.getElementById('btn-debug');
+  if (btnDebug) {
+    fetch('/api/debug/status').then(r => r.json()).then(d => {
+      btnDebug.classList.toggle('btn-outline-secondary', !d.debug);
+      btnDebug.classList.toggle('btn-warning', d.debug);
+    }).catch(() => {});
+
+    btnDebug.addEventListener('click', () => {
+      fetch('/api/debug/toggle', { method: 'POST' })
+        .then(r => r.json())
+        .then(d => {
+          btnDebug.classList.toggle('btn-outline-secondary', !d.debug);
+          btnDebug.classList.toggle('btn-warning', d.debug);
+          showToast('Mode debug ' + (d.debug ? 'activé' : 'désactivé'),
+                    d.debug ? 'warning' : 'info');
+        }).catch(() => {});
     });
   }
 });

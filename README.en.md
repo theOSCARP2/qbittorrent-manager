@@ -21,6 +21,8 @@ A lightweight Flask web interface to manage a remote qBittorrent instance.
 - **Dashboard** — overview with global speeds, disk usage (used/available with progress bar), real-time speed chart, torrent breakdown by state and category (count and disk space)
 - **Persistent filters** — filter torrents by state and category, filter trackers by status (OK / error / pending); sort and filters saved in the browser
 - **Dark / light theme** — toggle via the sun/moon button in the navbar, preference saved in the browser
+- **File priority** — dropdown per file in the detail panel (Skip / Normal / High / Maximum)
+- **Debug mode** — toggle from the web UI (🐛 button in navbar), shows verbose logs in the console without restarting
 - **Add torrents** — add a torrent via magnet link/URL or .torrent file, with category, save path and pause options
 - **Category change** — change a torrent's category directly from the detail panel
 - **Trackers in detail panel** — tracker list with status icon (active / error / pending)
@@ -83,7 +85,6 @@ On first launch, a unique secret key is automatically generated and saved to `~/
 | Environment variable | Description |
 |---|---|
 | `SECRET_KEY` | Overrides the auto-generated key (server, Docker, etc.) |
-| `FLASK_DEBUG` | Set to `1` to enable development mode with hot-reload |
 
 The application uses **Waitress** as the production WSGI server (no Flask development warning).
 

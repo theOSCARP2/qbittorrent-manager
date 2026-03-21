@@ -105,13 +105,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Installer Python Intel (x86_64)
+      - name: Installer Python (universal2)
         run: |
-          curl -Lo python-intel.pkg \
-            https://www.python.org/ftp/python/3.12.7/python-3.12.7-macosx10.9.pkg
-          sudo installer -pkg python-intel.pkg -target /
+          curl -Lo python-installer.pkg \
+            https://www.python.org/ftp/python/3.12.7/python-3.12.7-macos11.pkg
+          sudo installer -pkg python-installer.pkg -target /
 
-      - name: Installer les dépendances (x86_64)
+      - name: Installer les dépendances (x86_64 via Rosetta 2)
         run: |
           arch -x86_64 /Library/Frameworks/Python.framework/Versions/3.12/bin/python3.12 \
             -m pip install -r requirements.txt pyinstaller

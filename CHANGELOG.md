@@ -5,6 +5,18 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.6.0] - 2026-03-21
+
+### Ajouté
+- Page Dashboard : stats globales (total, vitesse DL/UP, taille), répartition par état et par catégorie, auto-refresh toutes les 15 secondes
+- Filtre par état sur la page Torrents (Téléchargement, Seed, Pausé, Erreur…)
+- Filtre par statut sur la page Trackers (OK / Erreur / En attente)
+
+### Corrigé
+- Les filtres état et catégorie ne se peuplaient pas au premier chargement (cache vide)
+
+---
+
 ## [1.5.0] - 2026-03-21
 
 ### Ajouté

@@ -139,6 +139,12 @@
       {% if session.get('qb_sid') %}
       <ul class="navbar-nav me-auto">
         <li class="nav-item">
+          <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}"
+             href="{{ url_for('dashboard') }}">
+            <i class="bi bi-speedometer2 me-1"></i><span data-i18n="nav.dashboard"></span>
+          </a>
+        </li>
+        <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'torrents' %}active{% endif %}"
              href="{{ url_for('torrents') }}">
             <i class="bi bi-list-ul me-1"></i>Torrents
@@ -210,6 +216,7 @@
 const TRANSLATIONS = {
   fr: {
     // Navbar
+    'nav.dashboard': 'Dashboard',
     'nav.logout': 'Déconnexion',
     'nav.lang':   'EN',
     // Login
@@ -222,6 +229,29 @@ const TRANSLATIONS = {
     'login.disclaimer':  'Les identifiants sont stockés uniquement en session serveur et ne sont jamais persistés.',
     // Torrents toolbar
     'torrents.all_categories': 'Toutes les catégories',
+    'torrents.all_states':     'Tous les états',
+    // Dashboard
+    'dash.title':        'Dashboard',
+    'dash.total':        'Torrents',
+    'dash.dl_speed':     'Téléchargement',
+    'dash.up_speed':     'Upload',
+    'dash.total_size':   'Taille totale',
+    'dash.by_state':     'Répartition par état',
+    'dash.by_category':  'Répartition par catégorie',
+    'dash.no_category':  'Sans catégorie',
+    'dash.loading':      'Chargement…',
+    'dash.downloading':  'Téléchargement',
+    'dash.seeding':      'Seed',
+    'dash.paused':       'Pausé',
+    'dash.error':        'Erreur',
+    'dash.checking':     'Vérification',
+    'dash.queued':       'File d\'attente',
+    'dash.other':        'Autre',
+    // Trackers filter
+    'trackers.all_statuses': 'Tous les statuts',
+    'trackers.status_ok':      'OK',
+    'trackers.status_error':   'Erreur',
+    'trackers.status_pending': 'En attente',
     'torrents.bulk_actions': 'Actions groupées :',
     'torrents.select_all':   'Tout sélectionner (page)',
     'torrents.deselect_all': 'Désélectionner',
@@ -384,6 +414,7 @@ const TRANSLATIONS = {
   },
   en: {
     // Navbar
+    'nav.dashboard': 'Dashboard',
     'nav.logout': 'Logout',
     'nav.lang':   'FR',
     // Login
@@ -396,6 +427,29 @@ const TRANSLATIONS = {
     'login.disclaimer':  'Credentials are stored only in the server-side session and never persisted.',
     // Torrents toolbar
     'torrents.all_categories': 'All categories',
+    'torrents.all_states':     'All states',
+    // Dashboard
+    'dash.title':        'Dashboard',
+    'dash.total':        'Torrents',
+    'dash.dl_speed':     'Download',
+    'dash.up_speed':     'Upload',
+    'dash.total_size':   'Total size',
+    'dash.by_state':     'By state',
+    'dash.by_category':  'By category',
+    'dash.no_category':  'Uncategorized',
+    'dash.loading':      'Loading…',
+    'dash.downloading':  'Downloading',
+    'dash.seeding':      'Seeding',
+    'dash.paused':       'Paused',
+    'dash.error':        'Error',
+    'dash.checking':     'Checking',
+    'dash.queued':       'Queued',
+    'dash.other':        'Other',
+    // Trackers filter
+    'trackers.all_statuses': 'All statuses',
+    'trackers.status_ok':      'OK',
+    'trackers.status_error':   'Error',
+    'trackers.status_pending': 'Pending',
     'torrents.bulk_actions': 'Bulk actions:',
     'torrents.select_all':   'Select All (page)',
     'torrents.deselect_all': 'Deselect All',

@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}Dashboard – qBit Manager{% endblock %}
+
+{% block extra_head %}
+<style>
+  .stat-card { border: 1px solid #30363d; background-color: #161b22; border-radius: 8px; padding: 1.25rem; }
+  .stat-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .5px; color: #8b949e; }
+  .stat-value { font-size: 1.6rem; font-weight: 700; color: #c9d1d9; }
+  .stat-icon  { font-size: 1.8rem; opacity: .6; }
+
+  .state-bar { height: 8px; border-radius: 4px; transition: width .4s ease; }
+  .category-pill { font-size: .8rem; padding: .2em .7em; border-radius: 20px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <h4 class="mb-0 fw-bold text-white">
+    <i class="bi bi-speedometer2 me-2 text-primary"></i><span data-i18n="dash.title"></span>
+  </h4>
+  <button class="btn btn-sm btn-outline-secondary" id="btn-dash-refresh">
+    <i class="bi bi-arrow-clockwise me-1"></i><span data-i18n="torrents.refresh"></span>
+  </button>
+</div>
+
+<!-- ── Stat cards ── -->
+<div class="row g-3 mb-4" id="stat-cards">
+  <div class="col-6 col-md-3">
+    <div class="stat-card h-100 d-flex align-items-center gap-3">
+      <i class="bi bi-collection-fill text-primary stat-icon"></i>
+      <div>
+        <div class="stat-label" data-i18n="dash.total"></div>
+        <div class="stat-value" id="stat-total">—</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card h-100 d-flex align-items-center gap-3">
+      <i class="bi bi-arrow-down-circle-fill text-info stat-icon"></i>
+      <div>
+        <div class="stat-label" data-i18n="dash.dl_speed"></div>
+        <div class="stat-value" id="stat-dl">—</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card h-100 d-flex align-items-center gap-3">
+      <i class="bi bi-arrow-up-circle-fill text-success stat-icon"></i>
+      <div>
+        <div class="stat-label" data-i18n="dash.up_speed"></div>
+        <div class="stat-value" id="stat-up">—</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card h-100 d-flex align-items-center gap-3">
+      <i class="bi bi-hdd-fill text-warning stat-icon"></i>
+      <div>
+        <div class="stat-label" data-i18n="dash.total_size"></div>
+        <div class="stat-value" id="stat-size">—</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── By state + by category ── -->
+<div class="row g-3">
+
+  <div class="col-12 col-xl-6">
+    <div class="card h-100">
+      <div class="card-header border-secondary">
+        <span class="fw-semibold text-white">
+          <i class="bi bi-pie-chart-fill me-2 text-primary"></i><span data-i18n="dash.by_state"></span>
+        </span>
+      </div>
+      <div class="card-body" id="by-state-body">
+        <div class="text-secondary text-center py-4" data-i18n="dash.loading"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-6">
+    <div class="card h-100">
+      <div class="card-header border-secondary">
+        <span class="fw-semibold text-white">
+          <i class="bi bi-tags-fill me-2 text-primary"></i><span data-i18n="dash.by_category"></span>
+        </span>
+      </div>
+      <div class="card-body" id="by-category-body">
+        <div class="text-secondary text-center py-4" data-i18n="dash.loading"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function fmtSpeed(b) {
+  if (!b) return '0 KB/s';
+  if (b >= 1e6) return (b/1e6).toFixed(1)+' MB/s';
+  if (b >= 1e3) return (b/1e3).toFixed(0)+' KB/s';
+  return b+' B/s';
+}
+function fmtSize(b) {
+  if (!b) return '—';
+  if (b >= 1e12) return (b/1e12).toFixed(2)+' TB';
+  if (b >= 1e9)  return (b/1e9).toFixed(2)+' GB';
+  if (b >= 1e6)  return (b/1e6).toFixed(1)+' MB';
+  return (b/1e3).toFixed(0)+' KB';
+}
+
+// Groupes d'états
+const STATE_GROUPS = [
+  { key: 'downloading', label: 'dash.downloading', states: ['downloading','forcedDL','metaDL'],                       color: '#1f6feb' },
+  { key: 'seeding',     label: 'dash.seeding',     states: ['uploading','forcedUP','stalledUP'],                      color: '#3fb950' },
+  { key: 'paused',      label: 'dash.paused',       states: ['pausedDL','pausedUP','stoppedDL','stoppedUP'],           color: '#8b949e' },
+  { key: 'error',       label: 'dash.error',        states: ['error','missingFiles'],                                  color: '#f85149' },
+  { key: 'checking',    label: 'dash.checking',     states: ['checkingDL','checkingUP','checkingResumeData'],          color: '#58a6ff' },
+  { key: 'queued',      label: 'dash.queued',       states: ['queuedDL','queuedUP'],                                   color: '#d29922' },
+  { key: 'other',       label: 'dash.other',        states: ['stalledDL','allocating','moving'],                       color: '#484f58' },
+];
+
+function renderByState(byState, total) {
+  const el = document.getElementById('by-state-body');
+  if (!total) { el.innerHTML = `<div class="text-secondary text-center py-4">${__('dash.loading')}</div>`; return; }
+
+  el.innerHTML = STATE_GROUPS.map(g => {
+    const count = g.states.reduce((s, k) => s + (byState[k] || 0), 0);
+    if (!count) return '';
+    const pct = Math.round(count / total * 100);
+    return `
+      <div class="mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <span style="font-size:.85rem;color:#c9d1d9;">${__(g.label)}</span>
+          <span style="font-size:.82rem;color:#8b949e;">${count} <span style="font-size:.72rem;">(${pct}%)</span></span>
+        </div>
+        <div class="progress" style="height:8px;background:#21262d;">
+          <div class="progress-bar" style="width:${pct}%;background:${g.color};border-radius:4px;"></div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderByCategory(byCategory, total) {
+  const el = document.getElementById('by-category-body');
+  if (!total) { el.innerHTML = `<div class="text-secondary text-center py-4">${__('dash.loading')}</div>`; return; }
+
+  const entries = Object.entries(byCategory)
+    .sort((a, b) => b[1] - a[1]);
+
+  el.innerHTML = entries.map(([cat, count]) => {
+    const label = cat || __('dash.no_category');
+    const pct   = Math.round(count / total * 100);
+    return `
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="badge bg-secondary category-pill">${label}</span>
+        <span style="font-size:.82rem;color:#8b949e;">${count} <span style="font-size:.72rem;">(${pct}%)</span></span>
+      </div>`;
+  }).join('');
+}
+
+function loadDashboard() {
+  fetch('/api/dashboard')
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('stat-total').textContent = d.total ?? '—';
+      document.getElementById('stat-dl').textContent    = fmtSpeed(d.dl_speed);
+      document.getElementById('stat-up').textContent    = fmtSpeed(d.up_speed);
+      document.getElementById('stat-size').textContent  = fmtSize(d.total_size);
+      renderByState(d.by_state || {}, d.total);
+      renderByCategory(d.by_category || {}, d.total);
+    })
+    .catch(() => showToast(__('toast.failed_load') + 'dashboard', 'danger'));
+}
+
+document.getElementById('btn-dash-refresh').addEventListener('click', loadDashboard);
+
+// Auto-refresh toutes les 15 secondes
+loadDashboard();
+setInterval(loadDashboard, 15000);
+</script>
+{% endblock %}

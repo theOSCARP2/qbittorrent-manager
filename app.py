@@ -240,6 +240,44 @@ def logout():
     return redirect(url_for("login"))
 
 
+@app.route("/dashboard")
+def dashboard():
+    if not is_logged_in():
+        return redirect(url_for("login"))
+    if not _cache.is_ready():
+        _start_bg_fetch({"qb_url": session["qb_url"], "qb_sid": session["qb_sid"]})
+    return render_template("dashboard.html")
+
+
+@app.route("/api/dashboard")
+def api_dashboard():
+    if not is_logged_in():
+        return jsonify({"error": "Not authenticated"}), 401
+    session_snapshot = {"qb_url": session["qb_url"], "qb_sid": session["qb_sid"]}
+    if _cache.age() > CACHE_TTL:
+        _start_bg_fetch(session_snapshot)
+    data = _cache.get()
+    by_state = {}
+    by_category = {}
+    total_dl = total_up = total_size = 0
+    for t in data:
+        by_state[t.get("state", "unknown")] = by_state.get(t.get("state", "unknown"), 0) + 1
+        cat = t.get("category") or ""
+        by_category[cat] = by_category.get(cat, 0) + 1
+        total_dl   += t.get("dlspeed", 0)
+        total_up   += t.get("upspeed", 0)
+        total_size += t.get("size", 0)
+    return jsonify({
+        "total":       len(data),
+        "dl_speed":    total_dl,
+        "up_speed":    total_up,
+        "total_size":  total_size,
+        "by_state":    by_state,
+        "by_category": by_category,
+        "ready":       _cache.is_ready(),
+    })
+
+
 @app.route("/torrents")
 def torrents():
     if not is_logged_in():
@@ -307,6 +345,7 @@ def api_torrents():
     order_dir = request.args.get("order[0][dir]", "asc")
 
     category_filter = request.args.get("category", "").strip()
+    state_filter    = request.args.get("state", "").strip()
 
     # -- Filter
     filtered = data
@@ -314,6 +353,8 @@ def api_torrents():
         filtered = [t for t in filtered if search in t.get("name", "").lower()]
     if category_filter:
         filtered = [t for t in filtered if t.get("category", "") == category_filter]
+    if state_filter:
+        filtered = [t for t in filtered if t.get("state", "") == state_filter]
 
     # -- Sort
     sort_key = _SORT_COLS.get(order_col, "name")
@@ -332,6 +373,14 @@ def api_torrents():
         "recordsFiltered": len(filtered),
         "data": page,
     })
+
+
+@app.route("/api/torrents/states")
+def api_torrents_states():
+    if not is_logged_in():
+        return jsonify({"error": "Not authenticated"}), 401
+    states = sorted({t.get("state", "") for t in _cache.get() if t.get("state")})
+    return jsonify(states)
 
 
 @app.route("/api/torrents/categories")

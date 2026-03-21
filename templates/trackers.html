@@ -78,8 +78,15 @@
         <!-- Table (hidden until loaded) -->
         <div id="trackers-table-wrapper" class="d-none">
 
-          <!-- Bulk delete toolbar -->
+          <!-- Status filter + Bulk delete toolbar -->
           <div class="px-3 pt-3 pb-2 d-flex align-items-center gap-2 flex-wrap">
+            <select class="form-select form-select-sm bg-dark border-secondary text-white" id="filter-tracker-status" style="max-width:160px;">
+              <option value="" data-i18n="trackers.all_statuses"></option>
+              <option value="ok"      data-i18n="trackers.status_ok"></option>
+              <option value="error"   data-i18n="trackers.status_error"></option>
+              <option value="pending" data-i18n="trackers.status_pending"></option>
+            </select>
+            <div class="vr mx-1"></div>
             <button class="btn btn-sm btn-outline-secondary" id="btn-tracker-select-all">
               <i class="bi bi-check-all me-1"></i><span data-i18n="trackers.select_all"></span>
             </button>
@@ -732,6 +739,22 @@ document.getElementById('btn-clear-results').addEventListener('click', () => {
     } catch (_) {}
   }
 })();
+
+// ─── Filtre statut trackers ──────────────────────────────────────────────────
+$.fn.dataTable.ext.search.push(function(settings, data, dataIndex, rowData) {
+  if (settings.nTable.id !== 'trackers-table') return true;
+  const filter = document.getElementById('filter-tracker-status').value;
+  if (!filter) return true;
+  if (filter === 'ok')      return rowData.ok > 0 && rowData.error === 0;
+  if (filter === 'error')   return rowData.error > 0;
+  if (filter === 'pending') return rowData.ok === 0 && rowData.error === 0;
+  return true;
+});
+
+document.getElementById('filter-tracker-status').addEventListener('change', () => {
+  if (dtTrackers) dtTrackers.draw();
+  applyTranslations();
+});
 
 // ─── Init ────────────────────────────────────────────────────────────────────
 loadTrackers();

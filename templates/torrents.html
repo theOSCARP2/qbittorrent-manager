@@ -29,7 +29,10 @@
   </h4>
   <div class="d-flex align-items-center gap-2">
     <span id="cache-status" class="text-secondary small"></span>
-    <select class="form-select form-select-sm bg-dark border-secondary text-white" id="filter-category" style="max-width:200px;">
+    <select class="form-select form-select-sm bg-dark border-secondary text-white" id="filter-state" style="max-width:170px;">
+      <option value="" data-i18n="torrents.all_states"></option>
+    </select>
+    <select class="form-select form-select-sm bg-dark border-secondary text-white" id="filter-category" style="max-width:170px;">
       <option value="" data-i18n="torrents.all_categories"></option>
     </select>
     <button class="btn btn-sm btn-outline-secondary" id="btn-refresh">
@@ -217,6 +220,7 @@ function initTable() {
         'order[0][column]': dtParams.order[0].column,
         'order[0][dir]':    dtParams.order[0].dir,
         category:           document.getElementById('filter-category').value,
+        state:              document.getElementById('filter-state').value,
       });
       fetch('/api/torrents?' + params)
         .then(r => r.json())
@@ -229,6 +233,13 @@ function initTable() {
           }
           document.getElementById('loading-bar').style.display = 'none';
           document.getElementById('cache-status').textContent = '';
+
+          // Peupler les filtres au premier chargement seulement
+          if (!filtersLoaded) {
+            filtersLoaded = true;
+            loadCategories();
+            loadStates();
+          }
 
           // Stocker les données brutes pour le panneau détail
           (json.data || []).forEach(t => torrentDataMap[t.hash] = t);
@@ -544,7 +555,9 @@ document.getElementById('btn-confirm-delete').addEventListener('click', async ()
   } else showToast(data.error || __('toast.failed'), 'danger');
 });
 
-// ── Category filter ──────────────────────────────────────────────────────────
+// ── Category / State filters ─────────────────────────────────────────────────
+let filtersLoaded = false;
+
 function loadCategories() {
   fetch('/api/torrents/categories')
     .then(r => r.json())
@@ -562,12 +575,31 @@ function loadCategories() {
     });
 }
 
+function loadStates() {
+  fetch('/api/torrents/states')
+    .then(r => r.json())
+    .then(states => {
+      const sel = document.getElementById('filter-state');
+      const current = sel.value;
+      sel.innerHTML = `<option value="">${__('torrents.all_states')}</option>`;
+      states.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s;
+        opt.textContent = __('state.' + s) || s;
+        if (s === current) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    });
+}
+
 document.getElementById('filter-category').addEventListener('change', () => {
+  dt.ajax.reload(null, false);
+});
+document.getElementById('filter-state').addEventListener('change', () => {
   dt.ajax.reload(null, false);
 });
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 initTable();
-loadCategories();
 </script>
 {% endblock %}

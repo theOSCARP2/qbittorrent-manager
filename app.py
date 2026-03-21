@@ -257,24 +257,39 @@ def api_dashboard():
     if _cache.age() > CACHE_TTL:
         _start_bg_fetch(session_snapshot)
     data = _cache.get()
-    by_state = {}
+    by_state    = {}
     by_category = {}
+    size_by_category = {}
     total_dl = total_up = total_size = 0
     for t in data:
-        by_state[t.get("state", "unknown")] = by_state.get(t.get("state", "unknown"), 0) + 1
+        state = t.get("state", "unknown")
+        by_state[state] = by_state.get(state, 0) + 1
         cat = t.get("category") or ""
-        by_category[cat] = by_category.get(cat, 0) + 1
+        by_category[cat]      = by_category.get(cat, 0) + 1
+        size_by_category[cat] = size_by_category.get(cat, 0) + t.get("size", 0)
         total_dl   += t.get("dlspeed", 0)
         total_up   += t.get("upspeed", 0)
         total_size += t.get("size", 0)
+
+    # Espace disque libre via qBittorrent
+    free_space = None
+    try:
+        resp = qb_request(session_snapshot, "GET", "/api/v2/sync/maindata")
+        main = resp.json()
+        free_space = main.get("server_state", {}).get("free_space_on_disk")
+    except Exception:
+        pass
+
     return jsonify({
-        "total":       len(data),
-        "dl_speed":    total_dl,
-        "up_speed":    total_up,
-        "total_size":  total_size,
-        "by_state":    by_state,
-        "by_category": by_category,
-        "ready":       _cache.is_ready(),
+        "total":            len(data),
+        "dl_speed":         total_dl,
+        "up_speed":         total_up,
+        "total_size":       total_size,
+        "free_space":       free_space,
+        "by_state":         by_state,
+        "by_category":      by_category,
+        "size_by_category": size_by_category,
+        "ready":            _cache.is_ready(),
     })
 
 
@@ -447,6 +462,20 @@ def api_trackers():
             continue
 
     return jsonify(tracker_map)
+
+
+@app.route("/api/torrent/files")
+def api_torrent_files():
+    if not is_logged_in():
+        return jsonify({"error": "Not authenticated"}), 401
+    hash_ = request.args.get("hash", "").strip()
+    if not hash_:
+        return jsonify({"error": "Missing hash"}), 400
+    try:
+        resp = qb_request(session, "GET", f"/api/v2/torrents/files?hash={hash_}")
+        return jsonify(resp.json())
+    except RuntimeError as exc:
+        return jsonify({"error": str(exc)}), 502
 
 
 @app.route("/api/torrent/properties")

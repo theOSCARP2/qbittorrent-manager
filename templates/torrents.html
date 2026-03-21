@@ -155,6 +155,7 @@ const STATE_MAP = {
   error:'bg-danger', missingFiles:'bg-danger',
   uploading:'bg-success', forcedUP:'bg-success',
   pausedUP:'bg-secondary', pausedDL:'bg-secondary',
+  stoppedUP:'bg-secondary', stoppedDL:'bg-secondary',
   queuedUP:'bg-secondary', queuedDL:'bg-secondary',
   stalledUP:'bg-success', stalledDL:'bg-warning text-dark',
   checkingUP:'bg-info text-dark', checkingDL:'bg-info text-dark',
@@ -201,7 +202,9 @@ function renderRow(t) {
 
 // ── Torrent data cache (raw) ─────────────────────────────────────────────────
 const torrentDataMap = {};
-let currentDetailHash = null;
+let currentDetailHash  = null;
+let currentDetailProps = null;
+let currentDetailFiles = null;
 
 // ── DataTable (server-side) ──────────────────────────────────────────────────
 let dt;
@@ -246,7 +249,7 @@ function initTable() {
 
           // Mettre à jour le panneau si le torrent affiché est dans ce batch
           if (currentDetailHash && torrentDataMap[currentDetailHash]) {
-            renderDetailPanel(torrentDataMap[currentDetailHash]);
+            renderDetailPanel(torrentDataMap[currentDetailHash], currentDetailProps, currentDetailFiles);
           }
 
           callback({
@@ -319,7 +322,7 @@ function schedulePoll() {
 }
 
 // ── Detail panel ─────────────────────────────────────────────────────────────
-function renderDetailPanel(t, props) {
+function renderDetailPanel(t, props, files) {
   const pct   = Math.round((t.progress || 0) * 100);
   const cls   = STATE_MAP[t.state] || 'bg-secondary';
   const label = stateLabel(t.state);
@@ -402,6 +405,30 @@ function renderDetailPanel(t, props) {
       </div>
     </div>
 
+    <!-- Fichiers -->
+    <div class="mb-3">
+      <div class="detail-label mb-2">${__('detail.files')}${files && files.length ? ` <span class="text-secondary">(${files.length})</span>` : ''}</div>
+      ${(() => {
+        if (files === null) return `<div class="text-secondary" style="font-size:.82rem;">…</div>`;
+        if (!files.length)  return `<div class="text-secondary" style="font-size:.82rem;">${__('detail.no_files')}</div>`;
+        return `<div style="max-height:200px;overflow-y:auto;padding-right:4px;">` +
+          files.map(f => {
+            const pct    = Math.round((f.progress || 0) * 100);
+            const pbCls  = pct >= 100 ? 'bg-success' : pct >= 50 ? 'bg-primary' : 'bg-warning';
+            const name   = f.name ? f.name.split('/').pop() : '—';
+            return `<div class="mb-2">
+              <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                <span style="font-size:.78rem;color:#c9d1d9;word-break:break-word;flex:1;" title="${escHtml(f.name||'')}">${escHtml(name)}</span>
+                <span style="font-size:.72rem;color:#8b949e;white-space:nowrap;">${fmtSize(f.size)}</span>
+              </div>
+              <div class="progress" style="height:4px;background:#21262d;">
+                <div class="progress-bar ${pbCls}" style="width:${pct}%;"></div>
+              </div>
+            </div>`;
+          }).join('') + `</div>`;
+      })()}
+    </div>
+
     <!-- Hash -->
     <div class="mb-3">
       <div class="detail-label mb-1">${__('detail.hash')}</div>
@@ -430,10 +457,12 @@ async function openDetailPanel(hash) {
   const t = torrentDataMap[hash];
   if (!t) return;
 
-  currentDetailHash = hash;
+  currentDetailHash  = hash;
+  currentDetailProps = null;
+  currentDetailFiles = null;
 
-  // Affichage immédiat avec les données disponibles (props en cours de chargement)
-  renderDetailPanel(t, null);
+  // Affichage immédiat avec les données disponibles (props/files en cours de chargement)
+  renderDetailPanel(t, null, null);
 
   // Surbrillance de la ligne
   document.querySelectorAll('#torrents-table tbody tr').forEach(r => r.classList.remove('selected-row'));
@@ -444,18 +473,26 @@ async function openDetailPanel(hash) {
   document.getElementById('table-col').className = 'col-12 col-xl-7';
   document.getElementById('detail-col').classList.remove('d-none');
 
-  // Fetch des propriétés supplémentaires (created_by, creation_date)
+  // Fetch des propriétés et fichiers en parallèle
   try {
-    const resp = await fetch(`/api/torrent/properties?hash=${hash}`);
-    const props = await resp.json();
-    if (!props.error && currentDetailHash === hash) {
-      renderDetailPanel(t, props);
+    const [propsResp, filesResp] = await Promise.all([
+      fetch(`/api/torrent/properties?hash=${hash}`),
+      fetch(`/api/torrent/files?hash=${hash}`),
+    ]);
+    const props = await propsResp.json();
+    const files = await filesResp.json();
+    if (currentDetailHash === hash) {
+      currentDetailProps = props.error ? null : props;
+      currentDetailFiles = Array.isArray(files) ? files : null;
+      renderDetailPanel(t, currentDetailProps, currentDetailFiles);
     }
   } catch (_) {}
 }
 
 function closeDetailPanel() {
-  currentDetailHash = null;
+  currentDetailHash  = null;
+  currentDetailProps = null;
+  currentDetailFiles = null;
   document.getElementById('detail-col').classList.add('d-none');
   document.getElementById('table-col').className = 'col-12';
   document.querySelectorAll('#torrents-table tbody tr').forEach(r => r.classList.remove('selected-row'));

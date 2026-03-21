@@ -18,8 +18,9 @@ A lightweight Flask web interface to manage a remote qBittorrent instance.
 - **Background cache** — torrent list is cached and automatically refreshed every 30 seconds
 - **Detail panel** — click a torrent to display all its information in a side panel
 - **Multilingual UI** — French by default, English available via the FR/EN button in the navbar (preference saved in the browser)
-- **Dashboard** — overview with global speeds, total size and torrent breakdown by state and category
+- **Dashboard** — overview with global speeds, disk usage (used/available with progress bar), real-time speed chart, torrent breakdown by state and category (count and disk space)
 - **Filters** — filter torrents by state and category, filter trackers by status (OK / error / pending)
+- **File list** — per-file details (name, size, individual progress bar) in the torrent detail panel
 
 ## Requirements
 

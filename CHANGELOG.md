@@ -5,6 +5,17 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.7.0] - 2026-03-21
+
+### Ajouté
+- Liste des fichiers d'un torrent dans le panneau détail (nom, taille, barre de progression par fichier)
+- Graphique d'évolution des vitesses DL/UP en temps réel sur le Dashboard (20 derniers points)
+- Espace disque dans la stat card du Dashboard : utilisé par les torrents / total estimé avec barre de progression
+- Répartition de l'espace disque par catégorie dans le Dashboard (onglet "Espace par catégorie")
+- Support des états qBittorrent v5 `stoppedUP` et `stoppedDL`
+
+---
+
 ## [1.6.0] - 2026-03-21
 
 ### Ajouté

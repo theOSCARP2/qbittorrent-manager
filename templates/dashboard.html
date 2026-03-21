@@ -2,6 +2,7 @@
 {% block title %}Dashboard – qBit Manager{% endblock %}
 
 {% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <style>
   .stat-card { border: 1px solid #30363d; background-color: #161b22; border-radius: 8px; padding: 1.25rem; }
   .stat-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .5px; color: #8b949e; }
@@ -54,10 +55,13 @@
   </div>
   <div class="col-6 col-md-3">
     <div class="stat-card h-100 d-flex align-items-center gap-3">
-      <i class="bi bi-hdd-fill text-warning stat-icon"></i>
-      <div>
-        <div class="stat-label" data-i18n="dash.total_size"></div>
-        <div class="stat-value" id="stat-size">—</div>
+      <i class="bi bi-hdd-stack-fill text-warning stat-icon"></i>
+      <div style="min-width:0;flex:1;">
+        <div class="stat-label" data-i18n="dash.disk_space"></div>
+        <div id="stat-disk-inline" style="font-size:.85rem;color:#c9d1d9;margin-top:.25rem;">—</div>
+        <div class="progress mt-2" style="height:5px;background:#21262d;">
+          <div id="stat-disk-bar" class="progress-bar bg-warning" style="width:0%;border-radius:4px;"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -81,10 +85,14 @@
 
   <div class="col-12 col-xl-6">
     <div class="card h-100">
-      <div class="card-header border-secondary">
+      <div class="card-header border-secondary d-flex gap-3">
         <span class="fw-semibold text-white">
           <i class="bi bi-tags-fill me-2 text-primary"></i><span data-i18n="dash.by_category"></span>
         </span>
+        <div class="ms-auto d-flex gap-2" style="font-size:.8rem;">
+          <button class="btn btn-sm btn-outline-secondary py-0 px-2 active" id="cat-tab-count" data-i18n="dash.total"></button>
+          <button class="btn btn-sm btn-outline-secondary py-0 px-2" id="cat-tab-size" data-i18n="dash.size_by_category"></button>
+        </div>
       </div>
       <div class="card-body" id="by-category-body">
         <div class="text-secondary text-center py-4" data-i18n="dash.loading"></div>
@@ -92,6 +100,22 @@
     </div>
   </div>
 
+</div>
+
+<!-- ── Speed chart ── -->
+<div class="row g-3 mt-0">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header border-secondary">
+        <span class="fw-semibold text-white">
+          <i class="bi bi-graph-up me-2 text-primary"></i><span data-i18n="dash.speed_chart"></span>
+        </span>
+      </div>
+      <div class="card-body">
+        <canvas id="speed-chart" height="80"></canvas>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
@@ -143,22 +167,131 @@ function renderByState(byState, total) {
   }).join('');
 }
 
+let _lastByCategory     = {};
+let _lastSizeByCategory = {};
+let _lastTotal          = 0;
+let _catMode            = 'count'; // 'count' | 'size'
+
+function renderDiskSpace(totalSize, freeSpace) {
+  const card = document.getElementById('stat-disk-inline');
+  const bar  = document.getElementById('stat-disk-bar');
+
+  if (freeSpace == null) {
+    if (card) card.textContent = __('dash.disk_unavailable');
+    return;
+  }
+
+  const estimated = totalSize + freeSpace;
+  const usedPct   = estimated > 0 ? Math.round(totalSize / estimated * 100) : 0;
+
+  if (card) card.innerHTML =
+    `<span class="text-warning fw-semibold">${fmtSize(totalSize)}</span>` +
+    `<span class="text-secondary"> / ${fmtSize(estimated)}</span>`;
+  if (bar) bar.style.width = usedPct + '%';
+}
+
 function renderByCategory(byCategory, total) {
+  _lastByCategory = byCategory;
+  _lastTotal      = total;
+  if (_catMode !== 'count') return;
   const el = document.getElementById('by-category-body');
   if (!total) { el.innerHTML = `<div class="text-secondary text-center py-4">${__('dash.loading')}</div>`; return; }
 
-  const entries = Object.entries(byCategory)
-    .sort((a, b) => b[1] - a[1]);
+  el.innerHTML = Object.entries(byCategory)
+    .sort((a, b) => b[1] - a[1])
+    .map(([cat, count]) => {
+      const label = cat || __('dash.no_category');
+      const pct   = Math.round(count / total * 100);
+      return `
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="badge bg-secondary category-pill">${label}</span>
+          <span style="font-size:.82rem;color:#8b949e;">${count} <span style="font-size:.72rem;">(${pct}%)</span></span>
+        </div>`;
+    }).join('');
+}
 
-  el.innerHTML = entries.map(([cat, count]) => {
+function renderSizeByCategory(sizeByCategory) {
+  _lastSizeByCategory = sizeByCategory;
+  if (_catMode !== 'size') return;
+  const el    = document.getElementById('by-category-body');
+  const entries = Object.entries(sizeByCategory).sort((a, b) => b[1] - a[1]);
+  const totalSz = entries.reduce((s, [, v]) => s + v, 0);
+  if (!entries.length) { el.innerHTML = `<div class="text-secondary text-center py-4">${__('dash.loading')}</div>`; return; }
+
+  el.innerHTML = entries.map(([cat, sz]) => {
     const label = cat || __('dash.no_category');
-    const pct   = Math.round(count / total * 100);
+    const pct   = totalSz > 0 ? Math.round(sz / totalSz * 100) : 0;
     return `
-      <div class="d-flex align-items-center justify-content-between mb-2">
-        <span class="badge bg-secondary category-pill">${label}</span>
-        <span style="font-size:.82rem;color:#8b949e;">${count} <span style="font-size:.72rem;">(${pct}%)</span></span>
+      <div class="mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <span style="font-size:.85rem;color:#c9d1d9;">${label}</span>
+          <span style="font-size:.82rem;color:#8b949e;">${fmtSize(sz)} <span style="font-size:.72rem;">(${pct}%)</span></span>
+        </div>
+        <div class="progress" style="height:6px;background:#21262d;">
+          <div class="progress-bar bg-info" style="width:${pct}%;border-radius:4px;"></div>
+        </div>
       </div>`;
   }).join('');
+}
+
+// Onglets count / size
+document.getElementById('cat-tab-count').addEventListener('click', () => {
+  _catMode = 'count';
+  document.getElementById('cat-tab-count').classList.add('active');
+  document.getElementById('cat-tab-size').classList.remove('active');
+  renderByCategory(_lastByCategory, _lastTotal);
+});
+document.getElementById('cat-tab-size').addEventListener('click', () => {
+  _catMode = 'size';
+  document.getElementById('cat-tab-size').classList.add('active');
+  document.getElementById('cat-tab-count').classList.remove('active');
+  renderSizeByCategory(_lastSizeByCategory);
+});
+
+// ── Speed chart ──────────────────────────────────────────────────────────────
+const MAX_HISTORY = 20;
+const speedLabels = [], speedDL = [], speedUP = [];
+
+const speedChart = new Chart(document.getElementById('speed-chart').getContext('2d'), {
+  type: 'line',
+  data: {
+    labels: speedLabels,
+    datasets: [
+      {
+        label: __('dash.dl_speed'),
+        data: speedDL,
+        borderColor: '#1f6feb',
+        backgroundColor: 'rgba(31,111,235,.15)',
+        fill: true, tension: 0.4, pointRadius: 3, borderWidth: 2,
+      },
+      {
+        label: __('dash.up_speed'),
+        data: speedUP,
+        borderColor: '#3fb950',
+        backgroundColor: 'rgba(63,185,80,.15)',
+        fill: true, tension: 0.4, pointRadius: 3, borderWidth: 2,
+      },
+    ],
+  },
+  options: {
+    responsive: true,
+    animation: { duration: 300 },
+    scales: {
+      x: { ticks: { color: '#8b949e', maxRotation: 0, maxTicksLimit: 8 }, grid: { color: '#21262d' } },
+      y: { ticks: { color: '#8b949e', callback: v => fmtSpeed(v) }, grid: { color: '#21262d' }, beginAtZero: true },
+    },
+    plugins: {
+      legend: { labels: { color: '#c9d1d9' } },
+      tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmtSpeed(ctx.raw)}` } },
+    },
+  },
+});
+
+function updateSpeedChart(dl, up) {
+  const label = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  speedLabels.push(label); speedDL.push(dl); speedUP.push(up);
+  if (speedLabels.length > MAX_HISTORY) { speedLabels.shift(); speedDL.shift(); speedUP.shift(); }
+  speedChart.update();
 }
 
 function loadDashboard() {
@@ -168,9 +301,11 @@ function loadDashboard() {
       document.getElementById('stat-total').textContent = d.total ?? '—';
       document.getElementById('stat-dl').textContent    = fmtSpeed(d.dl_speed);
       document.getElementById('stat-up').textContent    = fmtSpeed(d.up_speed);
-      document.getElementById('stat-size').textContent  = fmtSize(d.total_size);
+      renderDiskSpace(d.total_size || 0, d.free_space ?? null);
       renderByState(d.by_state || {}, d.total);
       renderByCategory(d.by_category || {}, d.total);
+      renderSizeByCategory(d.size_by_category || {});
+      updateSpeedChart(d.dl_speed || 0, d.up_speed || 0);
     })
     .catch(() => showToast(__('toast.failed_load') + 'dashboard', 'danger'));
 }

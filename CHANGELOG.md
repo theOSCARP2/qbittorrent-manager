@@ -8,7 +8,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 ## [1.11.1] - 2026-03-21
 
 ### Corrigé
-- Binaire macOS séparé pour Apple Silicon (`macos-arm64`) et Intel (`macos-intel`) — corrige l'erreur "Bad CPU type in executable" sur les Macs Intel
+- Binaire macOS universel (`universal2`) compatible Intel et Apple Silicon dans un seul fichier — corrige l'erreur "Bad CPU type in executable" sur les Macs Intel
 
 ---
 

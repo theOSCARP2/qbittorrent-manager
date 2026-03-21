@@ -54,8 +54,7 @@ Download the binary for your system from the [Releases](https://github.com/theOS
 |---|---|
 | Windows | `qbittorrent-manager.exe` |
 | Linux | `qbittorrent-manager-linux` |
-| macOS (Apple Silicon M1/M2/M3) | `qbittorrent-manager-macos-arm64` |
-| macOS (Intel) | `qbittorrent-manager-macos-intel` |
+| macOS (Intel + Apple Silicon) | `qbittorrent-manager-macos` |
 
 **Windows** — double-click the `.exe` or run it from a terminal:
 ```bat
@@ -64,7 +63,7 @@ qbittorrent-manager.exe
 
 **Linux / macOS** — make the file executable then run it:
 ```bash
-chmod +x qbittorrent-manager-linux  # or qbittorrent-manager-macos-arm64 / qbittorrent-manager-macos-intel
+chmod +x qbittorrent-manager-linux  # or qbittorrent-manager-macos
 ./qbittorrent-manager-linux
 ```
 

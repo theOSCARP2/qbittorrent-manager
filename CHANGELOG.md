@@ -5,6 +5,15 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.10.0] - 2026-03-21
+
+### Ajouté
+- Numéro de version affiché dans la navbar
+- Vérification automatique des mises à jour (via l'API GitHub Releases, cache 1h)
+- Badge jaune cliquable dans la navbar si une nouvelle version est disponible
+
+---
+
 ## [1.9.0] - 2026-03-21
 
 ### Ajouté

@@ -24,6 +24,7 @@ Une interface web Flask légère pour gérer une instance qBittorrent à distanc
 - **Changement de catégorie** — modifier la catégorie d'un torrent directement depuis le panneau détail
 - **Trackers dans le panneau détail** — liste des trackers avec icône de statut (actif / erreur / en attente)
 - **Filtres intégrés au tableau** — filtres état et catégorie directement dans les en-têtes de colonnes
+- **Vérification des mises à jour** — badge dans la navbar si une nouvelle version est disponible sur GitHub
 - **Notifications navigateur** — alerte automatique quand un torrent atteint 100%
 - **Liste des fichiers** — détail des fichiers d'un torrent avec taille et progression individuelle dans le panneau latéral
 

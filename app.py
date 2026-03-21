@@ -64,6 +64,46 @@ log = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
+APP_VERSION   = "1.10.0"
+GITHUB_REPO   = "theOSCARP2/qbittorrent-manager"
+_version_cache: dict = {"latest": None, "ts": 0.0}
+VERSION_CACHE_TTL = 3600  # 1 heure
+
+
+def _version_tuple(v: str) -> tuple:
+    return tuple(int(x) for x in v.lstrip("v").split("."))
+
+
+@app.context_processor
+def inject_version():
+    return {"app_version": APP_VERSION, "github_repo": GITHUB_REPO}
+
+
+@app.route("/api/version/check")
+def api_version_check():
+    now = time.monotonic()
+    if _version_cache["latest"] and now - _version_cache["ts"] < VERSION_CACHE_TTL:
+        latest = _version_cache["latest"]
+    else:
+        try:
+            r = requests.get(
+                f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest",
+                headers={"Accept": "application/vnd.github+json"},
+                timeout=5,
+            )
+            latest = r.json().get("tag_name", "").lstrip("v")
+            _version_cache["latest"] = latest
+            _version_cache["ts"]     = now
+        except Exception:
+            return jsonify({"error": "unavailable"}), 503
+
+    up_to_date = _version_tuple(APP_VERSION) >= _version_tuple(latest) if latest else True
+    return jsonify({
+        "current": APP_VERSION,
+        "latest":  latest,
+        "up_to_date": up_to_date,
+    })
+
 
 def _get_secret_key() -> str:
     # Priorité 1 : variable d'environnement (usage serveur / avancé)

@@ -173,6 +173,8 @@ jobs:
 
       - name: Télécharger les artifacts
         uses: actions/download-artifact@v4
+        with:
+          pattern: "{windows,linux,macos-arm64,macos-intel}"
 
       - name: Extraire le changelog
         id: changelog

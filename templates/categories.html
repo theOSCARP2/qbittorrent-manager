@@ -1,0 +1,645 @@
+{% extends "base.html" %}
+{% block title %}Catégories – qBit Manager{% endblock %}
+
+{% block extra_head %}
+<style>
+  .cat-row { cursor: pointer; }
+  .cat-row:hover td { background-color: var(--qbm-hover-bg) !important; }
+
+  #details-panel {
+    max-height: 340px;
+    overflow-y: auto;
+  }
+
+  #op-results {
+    max-height: 280px;
+    overflow-y: auto;
+  }
+
+  .result-item {
+    font-size: .82rem;
+    padding: 2px 0;
+  }
+
+  .spinner-inline {
+    width: 1rem;
+    height: 1rem;
+    border-width: 2px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <h4 class="mb-0 fw-bold">
+    <i class="bi bi-folder me-2 text-primary"></i><span data-i18n="cat.title"></span>
+  </h4>
+  <button class="btn btn-sm btn-outline-secondary" id="btn-refresh-cats">
+    <i class="bi bi-arrow-clockwise me-1"></i><span data-i18n="cat.refresh"></span>
+  </button>
+</div>
+
+<div class="row g-4">
+
+  <!-- ══════════════════════════════════════════════════
+       Left column – Category list
+  ══════════════════════════════════════════════════ -->
+  <div class="col-12 col-xl-7">
+    <div class="card h-100">
+      <div class="card-header border-secondary d-flex align-items-center justify-content-between">
+        <span class="fw-semibold">
+          <i class="bi bi-table me-2 text-primary"></i><span data-i18n="cat.title"></span>
+        </span>
+        <span id="cat-count-badge" class="badge bg-secondary"></span>
+      </div>
+      <div class="card-body p-0">
+
+        <!-- Loading -->
+        <div id="cats-loading" class="text-center text-secondary py-5">
+          <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+          <span data-i18n="cat.fetching"></span>
+        </div>
+
+        <!-- Table -->
+        <div id="cats-table-wrapper" class="d-none">
+          <div class="table-responsive">
+            <table id="cats-table" class="table table-hover table-striped align-middle mb-0">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th></th>
+                  <th style="width:90px;"></th>
+                  <th style="width:110px;"></th>
+                  <th style="width:130px;"></th>
+                </tr>
+              </thead>
+              <tbody id="cats-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Detail sub-panel -->
+        <div id="details-container" class="d-none border-top border-secondary">
+          <div class="p-3">
+            <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+              <span class="fw-semibold" id="details-title"></span>
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <button class="btn btn-xs btn-outline-secondary" id="btn-detail-select-all"
+                        style="font-size:.75rem;padding:2px 8px;">
+                  <i class="bi bi-check-all"></i> <span data-i18n="cat.det_select_all"></span>
+                </button>
+                <button class="btn btn-xs btn-outline-success"  id="btn-detail-resume"  style="font-size:.75rem;padding:2px 8px;"><i class="bi bi-play-fill"></i></button>
+                <button class="btn btn-xs btn-outline-warning"  id="btn-detail-pause"   style="font-size:.75rem;padding:2px 8px;"><i class="bi bi-pause-fill"></i></button>
+                <button class="btn btn-xs btn-outline-info"     id="btn-detail-recheck" style="font-size:.75rem;padding:2px 8px;"><i class="bi bi-arrow-repeat"></i></button>
+                <button class="btn btn-xs btn-outline-danger"   id="btn-detail-delete"  style="font-size:.75rem;padding:2px 8px;"><i class="bi bi-trash"></i></button>
+                <span id="detail-selected-count" class="text-secondary" style="font-size:.78rem;"></span>
+                <button class="btn btn-sm btn-outline-secondary" id="btn-close-details"><i class="bi bi-x"></i></button>
+              </div>
+            </div>
+            <div id="details-panel" style="max-height:340px;overflow-y:auto;">
+              <table class="table table-sm table-hover align-middle mb-0">
+                <thead style="position:sticky;top:0;">
+                  <tr>
+                    <th style="width:32px;"><input type="checkbox" class="form-check-input" id="chk-detail-header"></th>
+                    <th data-i18n="cat.det_col_name"></th>
+                    <th style="width:130px;" data-i18n="cat.det_col_state"></th>
+                    <th style="width:110px;" data-i18n="cat.det_col_actions"></th>
+                  </tr>
+                </thead>
+                <tbody id="details-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       Right column – Operations
+  ══════════════════════════════════════════════════ -->
+  <div class="col-12 col-xl-5">
+    <div class="card">
+      <div class="card-header border-secondary">
+        <span class="fw-semibold">
+          <i class="bi bi-gear me-2 text-primary"></i><span data-i18n="cat.bulk_title"></span>
+        </span>
+      </div>
+      <div class="card-body">
+
+        <ul class="nav nav-pills mb-3 gap-1" id="opTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active px-3 py-1" id="tab-create"
+                    data-bs-toggle="pill" data-bs-target="#pane-create" type="button" role="tab">
+              <i class="bi bi-plus-lg me-1"></i><span data-i18n="cat.tab_create"></span>
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link px-3 py-1" id="tab-edit"
+                    data-bs-toggle="pill" data-bs-target="#pane-edit" type="button" role="tab">
+              <i class="bi bi-pencil me-1"></i><span data-i18n="cat.tab_edit"></span>
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link px-3 py-1" id="tab-move"
+                    data-bs-toggle="pill" data-bs-target="#pane-move" type="button" role="tab">
+              <i class="bi bi-arrow-right me-1"></i><span data-i18n="cat.tab_move"></span>
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link px-3 py-1" id="tab-delete"
+                    data-bs-toggle="pill" data-bs-target="#pane-delete" type="button" role="tab">
+              <i class="bi bi-trash me-1"></i><span data-i18n="cat.tab_delete"></span>
+            </button>
+          </li>
+        </ul>
+
+        <div class="tab-content">
+
+          <!-- Create -->
+          <div class="tab-pane fade show active" id="pane-create" role="tabpanel">
+            <p class="text-secondary" style="font-size:.85rem;" data-i18n="cat.create_desc"></p>
+            <div class="mb-3">
+              <label class="form-label text-secondary fw-semibold" for="create-name" data-i18n="cat.create_name_label"></label>
+              <input type="text" class="form-control" id="create-name" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-secondary fw-semibold" for="create-path" data-i18n="cat.create_path_label"></label>
+              <input type="text" class="form-control font-monospace" id="create-path" />
+            </div>
+            <button class="btn btn-success w-100" id="btn-do-create">
+              <i class="bi bi-plus-lg me-2"></i><span data-i18n="cat.create_btn"></span>
+            </button>
+          </div>
+
+          <!-- Edit -->
+          <div class="tab-pane fade" id="pane-edit" role="tabpanel">
+            <p class="text-secondary" style="font-size:.85rem;" data-i18n="cat.edit_desc"></p>
+            <div class="mb-3">
+              <label class="form-label text-secondary fw-semibold" for="edit-name" data-i18n="cat.edit_name_label"></label>
+              <select class="form-select" id="edit-name"></select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-secondary fw-semibold" for="edit-newname" data-i18n="cat.edit_newname_label"></label>
+              <input type="text" class="form-control" id="edit-newname" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-secondary fw-semibold" for="edit-path" data-i18n="cat.edit_path_label"></label>
+              <input type="text" class="form-control font-monospace" id="edit-path" />
+            </div>
+            <button class="btn btn-primary w-100" id="btn-do-edit">
+              <i class="bi bi-pencil me-2"></i><span data-i18n="cat.edit_btn"></span>
+            </button>
+          </div>
+
+          <!-- Move -->
+          <div class="tab-pane fade" id="pane-move" role="tabpanel">
+            <p class="text-secondary" style="font-size:.85rem;" data-i18n="cat.move_desc"></p>
+            <div class="mb-3">
+              <label class="form-label text-secondary fw-semibold" for="move-src" data-i18n="cat.move_src_label"></label>
+              <select class="form-select" id="move-src"></select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-secondary fw-semibold" for="move-dst" data-i18n="cat.move_dst_label"></label>
+              <select class="form-select" id="move-dst"></select>
+            </div>
+            <button class="btn btn-warning w-100" id="btn-do-move">
+              <i class="bi bi-arrow-right me-2"></i><span data-i18n="cat.move_btn"></span>
+            </button>
+          </div>
+
+          <!-- Delete -->
+          <div class="tab-pane fade" id="pane-delete" role="tabpanel">
+            <p class="text-secondary" style="font-size:.85rem;" data-i18n="cat.delete_desc"></p>
+            <div class="mb-3">
+              <label class="form-label text-secondary fw-semibold" for="delete-name" data-i18n="cat.delete_name_label"></label>
+              <select class="form-select" id="delete-name"></select>
+            </div>
+            <button class="btn btn-danger w-100" id="btn-do-delete">
+              <i class="bi bi-trash me-2"></i><span data-i18n="cat.delete_btn"></span>
+            </button>
+          </div>
+
+        </div><!-- /tab-content -->
+
+        <!-- Results -->
+        <div id="op-results-wrapper" class="mt-4 d-none">
+          <hr class="border-secondary" />
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="fw-semibold" id="op-summary"></span>
+            <button class="btn btn-sm btn-outline-secondary" id="btn-clear-results">
+              <i class="bi bi-x"></i> <span data-i18n="cat.results_clear"></span>
+            </button>
+          </div>
+          <div id="op-results" class="border border-secondary rounded p-2"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// ─── Data ─────────────────────────────────────────────────────────────────────
+let catMap = {};  // name -> { name, savePath, torrents, size }
+let dtCats;
+
+function fmtSize(bytes) {
+  if (!bytes) return '—';
+  const units = ['o','Ko','Mo','Go','To'];
+  let i = 0;
+  while (bytes >= 1024 && i < units.length - 1) { bytes /= 1024; i++; }
+  return bytes.toFixed(i > 0 ? 1 : 0) + ' ' + units[i];
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── Load categories ──────────────────────────────────────────────────────────
+async function loadCategories() {
+  document.getElementById('cats-loading').classList.remove('d-none');
+  document.getElementById('cats-table-wrapper').classList.add('d-none');
+  document.getElementById('details-container').classList.add('d-none');
+  document.getElementById('cat-count-badge').textContent = '';
+
+  try {
+    const resp = await fetch('/api/categories');
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      showToast(err.error || __('cat.load_failed'), 'danger');
+      document.getElementById('cats-loading').innerHTML =
+        `<span class="text-danger"><i class="bi bi-exclamation-triangle me-2"></i>${__('cat.load_failed')}</span>`;
+      return;
+    }
+    catMap = await resp.json();
+  } catch (e) {
+    showToast(__('cat.network_error') + e.message, 'danger');
+    document.getElementById('cats-loading').innerHTML =
+      `<span class="text-danger"><i class="bi bi-exclamation-triangle me-2"></i>${escHtml(e.message)}</span>`;
+    return;
+  }
+
+  document.getElementById('cats-loading').classList.add('d-none');
+  document.getElementById('cats-table-wrapper').classList.remove('d-none');
+
+  const entries = Object.values(catMap);
+  document.getElementById('cat-count-badge').textContent = entries.length + ' ' + __('cat.count');
+
+  if (dtCats) {
+    dtCats.clear().rows.add(entries).draw();
+  } else {
+    dtCats = $('#cats-table').DataTable({
+      data: entries,
+      columns: [
+        {
+          title: __('cat.col_name'),
+          data: 'name',
+          render: (name, type) => type === 'display'
+            ? `<span class="fw-semibold"><i class="bi bi-folder-fill text-warning me-2"></i>${escHtml(name)}</span>`
+            : name,
+        },
+        {
+          title: __('cat.col_path'),
+          data: 'savePath',
+          render: (p, type) => type === 'display'
+            ? (p ? `<span class="font-monospace text-secondary" style="font-size:.78rem;">${escHtml(p)}</span>` : '<span class="text-secondary">—</span>')
+            : p,
+        },
+        {
+          title: __('cat.col_torrents'),
+          data: 'torrents',
+          type: 'num',
+          render: (n, type) => type === 'display'
+            ? `<span class="badge bg-primary">${n}</span>`
+            : n,
+        },
+        {
+          title: __('cat.col_size'),
+          data: 'size',
+          type: 'num',
+          render: (s, type) => type === 'display' ? fmtSize(s) : s,
+        },
+        {
+          title: __('cat.col_actions'),
+          data: 'name',
+          orderable: false,
+          searchable: false,
+          render: (name) => {
+            const n = escHtml(name);
+            return `<div class="d-flex gap-1" data-name="${n}">
+              <button class="btn btn-sm btn-outline-info"      data-action="details" title="${__('cat.action_details')}"><i class="bi bi-info-circle"></i></button>
+              <button class="btn btn-sm btn-outline-secondary" data-action="edit"    title="${__('cat.action_edit')}"><i class="bi bi-pencil"></i></button>
+              <button class="btn btn-sm btn-outline-danger"    data-action="delete"  title="${__('cat.action_delete')}"><i class="bi bi-trash"></i></button>
+            </div>`;
+          },
+        },
+      ],
+      order: [[0, 'asc']],
+      pageLength: 20,
+      lengthMenu: [10, 20, 50],
+      language: {
+        search: '',
+        searchPlaceholder: __('cat.search'),
+        emptyTable: `<span class="text-secondary">${__('cat.empty')}</span>`,
+        zeroRecords: `<span class="text-secondary">${__('cat.no_match')}</span>`,
+        info: __('cat.info'),
+        lengthMenu: __('cat.per_page'),
+      },
+    });
+  }
+
+  populateSelects();
+}
+
+// ─── Populate operation selects ───────────────────────────────────────────────
+function populateSelects() {
+  const names = Object.keys(catMap).sort((a, b) => a.localeCompare(b));
+
+  ['edit-name', 'delete-name', 'move-src'].forEach(id => {
+    const sel = document.getElementById(id);
+    const prev = sel.value;
+    sel.innerHTML = names.map(n => `<option value="${escHtml(n)}">${escHtml(n)}</option>`).join('');
+    if (names.includes(prev)) sel.value = prev;
+  });
+
+  // move-dst: same list + blank option for "no category"
+  const moveDst = document.getElementById('move-dst');
+  const prevDst = moveDst.value;
+  moveDst.innerHTML = `<option value="">— ${__('cat.move_dst_label')} —</option>` +
+    names.map(n => `<option value="${escHtml(n)}">${escHtml(n)}</option>`).join('');
+  if (names.includes(prevDst)) moveDst.value = prevDst;
+
+  // Auto-fill edit path when category changes
+  syncEditPath();
+}
+
+function syncEditPath() {
+  const name = document.getElementById('edit-name').value;
+  if (catMap[name]) {
+    document.getElementById('edit-path').value = catMap[name].savePath || '';
+  }
+}
+document.getElementById('edit-name').addEventListener('change', syncEditPath);
+
+// ─── Detail panel ─────────────────────────────────────────────────────────────
+const STATE_MAP = {
+  error:'bg-danger', missingFiles:'bg-danger',
+  uploading:'bg-success', forcedUP:'bg-success',
+  pausedUP:'bg-secondary', pausedDL:'bg-secondary',
+  stalledUP:'bg-success', stalledDL:'bg-warning text-dark',
+  checkingUP:'bg-info text-dark', checkingDL:'bg-info text-dark',
+  downloading:'bg-primary', forcedDL:'bg-primary',
+};
+
+let currentDetailTorrents = [];
+
+async function showDetails(catName) {
+  document.getElementById('details-title').textContent =
+    `${__('cat.det_title')} — ${catName}`;
+  document.getElementById('details-container').classList.remove('d-none');
+  document.getElementById('details-tbody').innerHTML =
+    `<tr><td colspan="4" class="text-center text-secondary py-3">
+      <div class="spinner-border spinner-border-sm me-2"></div>…
+    </td></tr>`;
+  document.getElementById('chk-detail-header').checked = false;
+  updateDetailSelectedCount();
+
+  try {
+    const resp = await fetch(`/api/category/torrents?name=${encodeURIComponent(catName)}`);
+    const data = await resp.json();
+    currentDetailTorrents = Array.isArray(data) ? data : [];
+  } catch {
+    currentDetailTorrents = [];
+  }
+  renderDetailRows();
+}
+
+function renderDetailRows() {
+  const tbody = document.getElementById('details-tbody');
+  if (!currentDetailTorrents.length) {
+    tbody.innerHTML = `<tr><td colspan="4" class="text-center text-secondary py-3">—</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = currentDetailTorrents.map(t => {
+    const cls   = STATE_MAP[t.state] || 'bg-secondary';
+    const label = __('state.' + t.state) || t.state || '?';
+    const pct   = Math.round((t.progress || 0) * 100);
+    const h     = escHtml(t.hash);
+    return `<tr>
+      <td><input type="checkbox" class="form-check-input detail-chk" data-hash="${h}"></td>
+      <td style="font-size:.82rem;" title="${escHtml(t.name)}">${escHtml(t.name.slice(0,55))}${t.name.length>55?'…':''}</td>
+      <td>
+        <span class="badge ${cls}" style="font-size:.65rem;">${label}</span>
+        <small class="text-secondary ms-1" style="font-size:.7rem;">${pct}%</small>
+      </td>
+      <td>
+        <div class="d-flex gap-1" data-hash="${h}">
+          <button class="btn btn-outline-success" style="padding:1px 6px;font-size:.72rem;" data-detail-action="resume"  title="${__('trackers.action_resume')}"><i class="bi bi-play-fill"></i></button>
+          <button class="btn btn-outline-warning" style="padding:1px 6px;font-size:.72rem;" data-detail-action="pause"   title="${__('trackers.action_pause')}"><i class="bi bi-pause-fill"></i></button>
+          <button class="btn btn-outline-info"    style="padding:1px 6px;font-size:.72rem;" data-detail-action="recheck" title="${__('trackers.action_recheck')}"><i class="bi bi-arrow-repeat"></i></button>
+          <button class="btn btn-outline-danger"  style="padding:1px 6px;font-size:.72rem;" data-detail-action="delete"  title="${__('trackers.action_del_t')}"><i class="bi bi-trash"></i></button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function getDetailSelectedHashes() {
+  return [...document.querySelectorAll('.detail-chk:checked')].map(c => c.dataset.hash);
+}
+
+function updateDetailSelectedCount() {
+  const n = getDetailSelectedHashes().length;
+  document.getElementById('detail-selected-count').textContent = n ? `${n} ${__('cat.det_selected')}` : '';
+}
+
+async function detailAction(action, hashOrNull) {
+  const hashes = hashOrNull ? [hashOrNull] : getDetailSelectedHashes();
+  if (!hashes.length) { showToast(__('cat.no_selection'), 'warning'); return; }
+  if (action === 'delete' && !confirm(__('cat.confirm_torrents').replace('{n}', hashes.length))) return;
+
+  const resp = await fetch('/api/torrent/action', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, hashes }),
+  });
+  const data = await resp.json();
+  if (data.ok) {
+    showToast(`${action} ${__('cat.applied')} ${data.count} ${__('cat.t_action')}`, 'success');
+    const hashSet = new Set(hashes);
+    if (action === 'delete') {
+      currentDetailTorrents = currentDetailTorrents.filter(t => !hashSet.has(t.hash));
+    } else {
+      const stateMap = { pause: 'pausedDL', resume: 'downloading', recheck: 'checkingResumeData' };
+      currentDetailTorrents.forEach(t => { if (hashSet.has(t.hash)) t.state = stateMap[action]; });
+    }
+    renderDetailRows();
+    updateDetailSelectedCount();
+  } else {
+    showToast(data.error || __('toast.failed'), 'danger');
+  }
+}
+
+document.getElementById('details-panel').addEventListener('click', e => {
+  const btn = e.target.closest('[data-detail-action]');
+  if (!btn) return;
+  detailAction(btn.dataset.detailAction, btn.closest('[data-hash]').dataset.hash);
+});
+
+document.getElementById('details-panel').addEventListener('change', e => {
+  if (e.target.classList.contains('detail-chk')) updateDetailSelectedCount();
+});
+document.getElementById('chk-detail-header').addEventListener('change', function() {
+  document.querySelectorAll('.detail-chk').forEach(c => c.checked = this.checked);
+  updateDetailSelectedCount();
+});
+document.getElementById('btn-detail-select-all').addEventListener('click', () => {
+  document.querySelectorAll('.detail-chk').forEach(c => c.checked = true);
+  document.getElementById('chk-detail-header').checked = true;
+  updateDetailSelectedCount();
+});
+document.getElementById('btn-detail-resume').addEventListener('click',  () => detailAction('resume',  null));
+document.getElementById('btn-detail-pause').addEventListener('click',   () => detailAction('pause',   null));
+document.getElementById('btn-detail-recheck').addEventListener('click', () => detailAction('recheck', null));
+document.getElementById('btn-detail-delete').addEventListener('click',  () => detailAction('delete',  null));
+document.getElementById('btn-close-details').addEventListener('click', () => {
+  document.getElementById('details-container').classList.add('d-none');
+});
+
+// ─── Table row action delegation ──────────────────────────────────────────────
+document.getElementById('cats-table').addEventListener('click', e => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const name = btn.closest('[data-name]').dataset.name;
+  const action = btn.dataset.action;
+  if      (action === 'details') showDetails(name);
+  else if (action === 'edit')    prefillEdit(name);
+  else if (action === 'delete')  doDelete(name);
+});
+
+function prefillEdit(name) {
+  document.getElementById('edit-name').value = name;
+  syncEditPath();
+  document.getElementById('edit-newname').value = '';
+  bootstrap.Tab.getOrCreateInstance(document.getElementById('tab-edit')).show();
+  document.getElementById('edit-newname').focus();
+}
+
+// ─── Operations ───────────────────────────────────────────────────────────────
+function showOpResult(summary, details) {
+  document.getElementById('op-results-wrapper').classList.remove('d-none');
+  document.getElementById('op-summary').innerHTML = summary;
+  document.getElementById('op-results').innerHTML = details.map(d =>
+    `<div class="result-item d-flex align-items-center gap-2">
+       <i class="bi ${d.status === 'ok' ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger'}"></i>
+       <span>${escHtml(d.name)}</span>
+       ${d.message ? `<span class="text-danger ms-auto" style="font-size:.75rem;">${escHtml(d.message)}</span>` : ''}
+     </div>`
+  ).join('');
+}
+
+async function apiPost(url, body) {
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  return { resp, data: await resp.json() };
+}
+
+// Create
+document.getElementById('btn-do-create').addEventListener('click', async () => {
+  const name = document.getElementById('create-name').value.trim();
+  const path = document.getElementById('create-path').value.trim();
+  if (!name) { showToast(__('cat.name_required'), 'warning'); return; }
+  const btn = document.getElementById('btn-do-create');
+  btn.disabled = true;
+  try {
+    const { resp, data } = await apiPost('/api/category/create', { name, save_path: path });
+    if (!resp.ok || data.error) { showToast(data.error || __('toast.failed'), 'danger'); return; }
+    showToast(`✓ "${name}" ${__('cat.done')}`, 'success');
+    document.getElementById('create-name').value = '';
+    document.getElementById('create-path').value = '';
+    setTimeout(loadCategories, 600);
+  } catch (e) { showToast(__('cat.network_error') + e.message, 'danger'); }
+  finally { btn.disabled = false; }
+});
+
+// Edit
+document.getElementById('btn-do-edit').addEventListener('click', async () => {
+  const name    = document.getElementById('edit-name').value;
+  const newName = document.getElementById('edit-newname').value.trim();
+  const path    = document.getElementById('edit-path').value.trim();
+  if (!name) { showToast(__('cat.select_required'), 'warning'); return; }
+  const btn = document.getElementById('btn-do-edit');
+  btn.disabled = true;
+  try {
+    const { resp, data } = await apiPost('/api/category/edit', { name, new_name: newName, save_path: path });
+    if (!resp.ok || data.error) { showToast(data.error || __('toast.failed'), 'danger'); return; }
+    showToast(`✓ ${__('cat.done')}`, 'success');
+    document.getElementById('edit-newname').value = '';
+    setTimeout(loadCategories, 600);
+  } catch (e) { showToast(__('cat.network_error') + e.message, 'danger'); }
+  finally { btn.disabled = false; }
+});
+
+// Move
+document.getElementById('btn-do-move').addEventListener('click', async () => {
+  const src = document.getElementById('move-src').value;
+  const dst = document.getElementById('move-dst').value;
+  if (!src) { showToast(__('cat.select_required'), 'warning'); return; }
+  const btn = document.getElementById('btn-do-move');
+  const origHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner-border spinner-inline me-2" role="status"></span>${__('cat.processing')}`;
+  document.getElementById('op-results-wrapper').classList.remove('d-none');
+  document.getElementById('op-summary').innerHTML =
+    `<span class="spinner-border spinner-inline me-2" role="status"></span>${__('cat.processing')}`;
+  document.getElementById('op-results').innerHTML = '';
+  try {
+    const { resp, data } = await apiPost('/api/category/move-torrents', { src, dst });
+    if (!resp.ok || data.error) { showToast(data.error || __('toast.failed'), 'danger'); return; }
+    const summary = `<i class="bi bi-check-circle-fill text-success me-1"></i>`
+      + `<strong class="text-success">${data.success}</strong> ${__('cat.done')}`
+      + (data.failed ? `, <strong class="text-danger">${data.failed}</strong> ${__('cat.errors_count')}` : '');
+    showOpResult(summary, data.details || []);
+    showToast(`✓ ${data.success} ${__('cat.done')}`, data.failed ? 'warning' : 'success');
+    setTimeout(loadCategories, 800);
+  } catch (e) { showToast(__('cat.network_error') + e.message, 'danger'); }
+  finally { btn.disabled = false; btn.innerHTML = origHtml; }
+});
+
+// Delete
+async function doDelete(name) {
+  if (!name) { showToast(__('cat.select_required'), 'warning'); return; }
+  if (!confirm(__('cat.confirm_delete').replace('{name}', name))) return;
+  try {
+    const { resp, data } = await apiPost('/api/category/delete', { name });
+    if (!resp.ok || data.error) { showToast(data.error || __('toast.failed'), 'danger'); return; }
+    showToast(`✓ "${name}" ${__('cat.done')}`, 'success');
+    document.getElementById('details-container').classList.add('d-none');
+    setTimeout(loadCategories, 600);
+  } catch (e) { showToast(__('cat.network_error') + e.message, 'danger'); }
+}
+
+document.getElementById('btn-do-delete').addEventListener('click', () => {
+  doDelete(document.getElementById('delete-name').value);
+});
+
+// ─── Misc ─────────────────────────────────────────────────────────────────────
+document.getElementById('btn-refresh-cats').addEventListener('click', loadCategories);
+document.getElementById('btn-clear-results').addEventListener('click', () => {
+  document.getElementById('op-results-wrapper').classList.add('d-none');
+});
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+loadCategories();
+</script>
+{% endblock %}

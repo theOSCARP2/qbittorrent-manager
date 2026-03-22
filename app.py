@@ -80,7 +80,7 @@ def _set_debug(enabled: bool):
 
 app = Flask(__name__)
 
-APP_VERSION   = "1.14.0"
+APP_VERSION   = "1.15.0"
 GITHUB_REPO   = "theOSCARP2/qbittorrent-manager"
 _version_cache: dict = {"latest": None, "ts": 0.0}
 VERSION_CACHE_TTL = 3600  # 1 heure
@@ -361,6 +361,13 @@ def trackers():
     if not is_logged_in():
         return redirect(url_for("login"))
     return render_template("trackers.html")
+
+
+@app.route("/categories")
+def categories():
+    if not is_logged_in():
+        return redirect(url_for("login"))
+    return render_template("categories.html")
 
 
 @app.route("/logs")
@@ -895,6 +902,168 @@ def api_tracker_delete_many():
         details.append({"tracker": tracker_url, "torrents_ok": ok_count, "torrents_failed": fail_count})
 
     return jsonify({"ok": True, "total_removed": total_removed, "failed": failed, "details": details})
+
+
+# ---------------------------------------------------------------------------
+# Categories API
+# ---------------------------------------------------------------------------
+
+@app.route("/api/categories")
+def api_categories():
+    """
+    Returns all categories with torrent count and total size.
+    {
+      "CategoryName": { "name": str, "savePath": str, "torrents": int, "size": int }
+    }
+    """
+    if not is_logged_in():
+        return jsonify({"error": "Not authenticated"}), 401
+    try:
+        cats_resp = qb_request(session, "GET", "/api/v2/torrents/categories")
+        cats = cats_resp.json()  # { name: { name, savePath } }
+    except RuntimeError as exc:
+        return jsonify({"error": str(exc)}), 502
+
+    # Fetch live torrent list to get accurate counts (don't rely on cache)
+    try:
+        torrents_resp = qb_request(session, "GET", "/api/v2/torrents/info",
+                                   params={"fields": "hash,category,size"})
+        torrents_list = torrents_resp.json()
+    except RuntimeError:
+        torrents_list = _cache.get()  # fallback to cache if live fetch fails
+
+    stats: dict[str, dict] = {
+        name: {"name": name, "savePath": info.get("savePath", ""), "torrents": 0, "size": 0}
+        for name, info in cats.items()
+    }
+    for t in torrents_list:
+        cat = t.get("category", "")
+        if cat in stats:
+            stats[cat]["torrents"] += 1
+            stats[cat]["size"] += t.get("size", 0)
+
+    return jsonify(stats)
+
+
+@app.route("/api/category/torrents")
+def api_category_torrents():
+    """Returns the live list of torrents for a given category."""
+    if not is_logged_in():
+        return jsonify({"error": "Not authenticated"}), 401
+    cat = request.args.get("name", "")
+    try:
+        resp = qb_request(session, "GET", "/api/v2/torrents/info",
+                          params={"category": cat})
+        return jsonify(resp.json())
+    except RuntimeError:
+        # Fallback to cache
+        return jsonify([t for t in _cache.get() if t.get("category", "") == cat])
+
+
+@app.route("/api/category/create", methods=["POST"])
+def api_category_create():
+    if not is_logged_in():
+        return jsonify({"error": "Not authenticated"}), 401
+    body = request.get_json(force=True, silent=True) or {}
+    name = (body.get("name") or "").strip()
+    save_path = (body.get("save_path") or "").strip()
+    if not name:
+        return jsonify({"error": "name is required"}), 400
+    try:
+        qb_request(session, "POST", "/api/v2/torrents/createCategory",
+                   data={"category": name, "savePath": save_path})
+        log.info("Catégorie créée : %s", name)
+        return jsonify({"ok": True})
+    except RuntimeError as exc:
+        return jsonify({"error": str(exc)}), 502
+
+
+@app.route("/api/category/edit", methods=["POST"])
+def api_category_edit():
+    if not is_logged_in():
+        return jsonify({"error": "Not authenticated"}), 401
+    body = request.get_json(force=True, silent=True) or {}
+    old_name = (body.get("name") or "").strip()
+    new_name = (body.get("new_name") or "").strip()
+    save_path = (body.get("save_path") or "").strip()
+    if not old_name:
+        return jsonify({"error": "name is required"}), 400
+
+    try:
+        # If renaming: create new, move torrents, delete old
+        if new_name and new_name != old_name:
+            qb_request(session, "POST", "/api/v2/torrents/createCategory",
+                       data={"category": new_name, "savePath": save_path})
+            # Move all torrents from old category to new
+            torrents_resp = qb_request(session, "GET", "/api/v2/torrents/info",
+                                       params={"category": old_name})
+            for t in torrents_resp.json():
+                qb_request(session, "POST", "/api/v2/torrents/setCategory",
+                           data={"hashes": t["hash"], "category": new_name})
+            qb_request(session, "POST", "/api/v2/torrents/removeCategories",
+                       data={"categories": old_name})
+        else:
+            # Just update save path
+            qb_request(session, "POST", "/api/v2/torrents/editCategory",
+                       data={"category": old_name, "savePath": save_path})
+        log.info("Catégorie modifiée : %s → %s", old_name, new_name or old_name)
+        _cache.invalidate()
+        return jsonify({"ok": True})
+    except RuntimeError as exc:
+        return jsonify({"error": str(exc)}), 502
+
+
+@app.route("/api/category/delete", methods=["POST"])
+def api_category_delete():
+    if not is_logged_in():
+        return jsonify({"error": "Not authenticated"}), 401
+    body = request.get_json(force=True, silent=True) or {}
+    name = (body.get("name") or "").strip()
+    if not name:
+        return jsonify({"error": "name is required"}), 400
+    try:
+        qb_request(session, "POST", "/api/v2/torrents/removeCategories",
+                   data={"categories": name})
+        log.info("Catégorie supprimée : %s", name)
+        _cache.invalidate()
+        return jsonify({"ok": True})
+    except RuntimeError as exc:
+        return jsonify({"error": str(exc)}), 502
+
+
+@app.route("/api/category/move-torrents", methods=["POST"])
+def api_category_move_torrents():
+    """Move all torrents from src category to dst category (empty = uncategorized)."""
+    if not is_logged_in():
+        return jsonify({"error": "Not authenticated"}), 401
+    body = request.get_json(force=True, silent=True) or {}
+    src = (body.get("src") or "").strip()
+    dst = (body.get("dst") or "").strip()
+    if not src:
+        return jsonify({"error": "src is required"}), 400
+    try:
+        torrents_resp = qb_request(session, "GET", "/api/v2/torrents/info",
+                                   params={"category": src})
+        torrents = torrents_resp.json()
+    except RuntimeError as exc:
+        return jsonify({"error": str(exc)}), 502
+
+    success = 0
+    failed = 0
+    details = []
+    for t in torrents:
+        try:
+            qb_request(session, "POST", "/api/v2/torrents/setCategory",
+                       data={"hashes": t["hash"], "category": dst})
+            success += 1
+            details.append({"name": t.get("name", t["hash"]), "status": "ok"})
+        except RuntimeError as exc:
+            failed += 1
+            details.append({"name": t.get("name", t["hash"]), "status": "error", "message": str(exc)})
+
+    _cache.invalidate()
+    log.info("Torrents déplacés de '%s' vers '%s' : %d OK, %d erreurs", src, dst or "(aucune)", success, failed)
+    return jsonify({"ok": True, "success": success, "failed": failed, "details": details})
 
 
 # ---------------------------------------------------------------------------

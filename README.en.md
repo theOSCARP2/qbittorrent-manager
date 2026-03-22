@@ -31,6 +31,7 @@ A lightweight Flask web interface to manage a remote qBittorrent instance.
 - **Browser notifications** — automatic alert when a torrent reaches 100%
 - **File list** — per-file details (name, size, individual progress bar) in the torrent detail panel
 - **ETA column** — estimated time remaining in the torrent table (sortable)
+- **Categories page** — full category management: create, rename, change save path, move torrents between categories, delete
 - **Logs page** — real-time qBittorrent logs with level filter (Normal / Info / Warning / Critical), pause and auto-scroll
 
 ## Requirements

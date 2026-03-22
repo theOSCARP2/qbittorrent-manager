@@ -5,6 +5,20 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.15.0] - 2026-03-22
+
+### Ajouté
+- Page Catégories : gestion complète des catégories qBittorrent
+  - Tableau avec nom, chemin de sauvegarde, nombre de torrents et espace disque
+  - Panneau détail : liste des torrents par catégorie avec actions (pause/reprise/vérifier/supprimer)
+  - Créer une catégorie avec chemin de sauvegarde optionnel
+  - Modifier : renommer et/ou changer le chemin d'une catégorie (les torrents sont migrés automatiquement)
+  - Déplacer : déplacer tous les torrents d'une catégorie vers une autre (ou sans catégorie)
+  - Supprimer : supprimer une catégorie (les torrents passent en "sans catégorie")
+  - Lien dans la navbar entre Trackers et Logs
+
+---
+
 ## [1.14.0] - 2026-03-22
 
 ### Ajouté

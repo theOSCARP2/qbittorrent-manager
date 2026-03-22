@@ -21,6 +21,7 @@
   <link rel="stylesheet"
         href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" />
 
+
   <style>
     /* ── Theme variables ──────────────────────────────────────────────────── */
     :root {
@@ -148,6 +149,32 @@
       flex-direction: column;
       gap: .5rem;
     }
+
+    /* ── Mobile ────────────────────────────────────────────────────────────── */
+    @media (max-width: 991.98px) {
+      /* Navbar collapsée : boutons en ligne dans le menu */
+      .navbar-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .5rem;
+        padding: .5rem 0;
+        border-top: 1px solid var(--qbm-border);
+        margin-top: .5rem;
+      }
+      /* Agrandir les zones tactiles (min 44px WCAG) */
+      .btn { min-height: 44px; }
+      .btn-sm { min-height: 36px; }
+      /* Toast en bas centré sur mobile */
+      #toast-container {
+        bottom: 1rem;
+        right: .75rem;
+        left: .75rem;
+        align-items: stretch;
+      }
+      /* Réduire le padding des pages sur mobile */
+      main.container-fluid { padding-left: .75rem; padding-right: .75rem; }
+    }
+
   </style>
 
   {% block extra_head %}{% endblock %}
@@ -207,8 +234,8 @@
         </li>
       </ul>
 
-      <div class="d-flex align-items-center gap-3">
-        <span class="server-pill">
+      <div class="navbar-actions d-lg-flex align-items-center gap-2">
+        <span class="server-pill d-none d-lg-inline-flex">
           <span class="dot"></span>
           {{ session.get('qb_url', '') }}
           {% if session.get('qb_username') %}

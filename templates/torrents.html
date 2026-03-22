@@ -300,6 +300,44 @@ let currentDetailTrackers = null;
 let detailRefreshTimer    = null;
 let availableCategories = [];
 
+// ── Colonnes visibles selon la largeur d'écran ────────────────────────────────
+// mobile < 768 : checkbox, nom, progression, état, DL, actions
+// tablet 768–991 : + catégorie, ETA, upload
+// desktop ≥ 992 : tout
+function _torrentsColDefs() {
+  const w = window.innerWidth;
+  // indices masqués selon breakpoint
+  // 0=chk, 1=nom, 2=cat, 3=taille, 4=progress, 5=état, 6=seeds, 7=peers,
+  // 8=dl, 9=up, 10=ratio, 11=eta, 12=actions
+  const hideMobile  = [2, 3, 6, 7, 9, 10, 11]; // hidden < 768
+  const hideTablet  = [3, 6, 7, 10];            // hidden 768–991
+  const hidden = w < 768 ? hideMobile : w < 992 ? hideTablet : [];
+  if (!hidden.length) return [];
+  return [{ targets: hidden, visible: false }];
+}
+
+function _applyTorrentsColVisibility() {
+  if (!dt) return;
+  const w = window.innerWidth;
+  const show = i => dt.column(i).visible(true);
+  const hide = i => dt.column(i).visible(false);
+  if (w < 768) {
+    [1,4,5,8,12].forEach(show);
+    [2,3,6,7,9,10,11].forEach(hide);
+  } else if (w < 992) {
+    [1,2,4,5,8,9,11,12].forEach(show);
+    [3,6,7,10].forEach(hide);
+  } else {
+    [0,1,2,3,4,5,6,7,8,9,10,11,12].forEach(show);
+  }
+}
+
+let _resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(_applyTorrentsColVisibility, 200);
+});
+
 // ── DataTable (server-side) ──────────────────────────────────────────────────
 let dt;
 let pollTimer = null;
@@ -386,12 +424,15 @@ function initTable() {
       { title: __('col.eta'),      type: 'num' },
       { title: __('col.actions'),  orderable: false, searchable: false },
     ],
+    columnDefs: _torrentsColDefs(),
     order: [[parseInt(PREF.get('sort-col', '1')), PREF.get('sort-dir', 'asc')]],
     initComplete: function() {
       addHeaderFilter(this.api(), 2, 'filter-category', __('torrents.all_categories'));
       addHeaderFilter(this.api(), 5, 'filter-state',    __('torrents.all_states'));
-      document.getElementById('filter-category').value = PREF.get('filter-category');
-      document.getElementById('filter-state').value    = PREF.get('filter-state');
+      const catSel   = document.getElementById('filter-category');
+      const stateSel = document.getElementById('filter-state');
+      if (catSel)   catSel.value   = PREF.get('filter-category');
+      if (stateSel) stateSel.value = PREF.get('filter-state');
     },
     pageLength: 20,
     lengthMenu: [20, 50, 100, 200],
@@ -904,6 +945,7 @@ function loadCategories() {
     .then(r => r.json())
     .then(cats => {
       const sel = document.getElementById('filter-category');
+      if (!sel) return;
       const current = sel.value;
       sel.innerHTML = `<option value="">${__('torrents.all_categories')}</option>`;
       cats.forEach(c => {
@@ -921,6 +963,7 @@ function loadStates() {
     .then(r => r.json())
     .then(states => {
       const sel = document.getElementById('filter-state');
+      if (!sel) return;
       const current = sel.value;
       sel.innerHTML = `<option value="">${__('torrents.all_states')}</option>`;
       states.forEach(s => {

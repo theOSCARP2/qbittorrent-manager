@@ -352,6 +352,7 @@ async function loadTrackers() {
   } else {
     dtTrackers = $('#trackers-table').DataTable({
       data: rows,
+      columnDefs: window.innerWidth < 768 ? [{ targets: [2], visible: false }] : [],
       columns: [
         {
           title: '<input type="checkbox" class="form-check-input" id="chk-tracker-header">',

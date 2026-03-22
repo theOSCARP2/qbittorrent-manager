@@ -297,6 +297,7 @@ async function loadCategories() {
   } else {
     dtCats = $('#cats-table').DataTable({
       data: entries,
+      columnDefs: window.innerWidth < 768 ? [{ targets: [1, 3], visible: false }] : [],
       columns: [
         {
           title: __('cat.col_name'),

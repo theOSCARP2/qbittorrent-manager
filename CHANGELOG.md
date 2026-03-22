@@ -5,6 +5,20 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.17.0] - 2026-03-22
+
+### Amélioré
+- Compatibilité mobile : l'interface est désormais utilisable sur smartphone
+  - Tableaux responsifs (DataTables Responsive) : les colonnes moins importantes se masquent sur petit écran et sont accessibles via un clic sur la ligne
+  - Torrents : priorité aux colonnes nom, progression, état, vitesse DL et actions
+  - Trackers : priorité à l'URL, au statut et aux actions
+  - Catégories : priorité au nom, nombre de torrents et actions
+  - Navbar : boutons langue/thème/debug/déconnexion intégrés au menu hamburger sur mobile
+  - Zones tactiles agrandies (min 44px) pour les boutons
+  - Toasts pleine largeur sur mobile
+
+---
+
 ## [1.16.0] - 2026-03-22
 
 ### Ajouté

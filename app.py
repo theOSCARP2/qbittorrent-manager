@@ -80,7 +80,7 @@ def _set_debug(enabled: bool):
 
 app = Flask(__name__)
 
-APP_VERSION   = "1.16.0"
+APP_VERSION   = "1.17.0"
 GITHUB_REPO   = "theOSCARP2/qbittorrent-manager"
 _version_cache: dict = {"latest": None, "ts": 0.0}
 VERSION_CACHE_TTL = 3600  # 1 heure

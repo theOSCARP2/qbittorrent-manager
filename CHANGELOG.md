@@ -5,6 +5,18 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.13.0] - 2026-03-22
+
+### Ajouté
+- Colonne ETA dans le tableau des torrents (temps estimé avant fin du téléchargement, triable)
+- Page Logs : affichage des logs qBittorrent en temps réel avec mise à jour automatique toutes les 5 secondes
+  - Filtres par niveau (Normal / Info / Avertissement / Critique)
+  - Mode pause / reprise du rafraîchissement automatique
+  - Auto-scroll vers le bas (désactivé si l'utilisateur remonte dans les logs)
+  - Bouton pour effacer l'affichage local
+
+---
+
 ## [1.12.0] - 2026-03-22
 
 ### Ajouté

@@ -193,6 +193,12 @@
             <i class="bi bi-broadcast me-1"></i>Trackers
           </a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint == 'logs' %}active{% endif %}"
+             href="{{ url_for('logs') }}">
+            <i class="bi bi-terminal me-1"></i><span data-i18n="nav.logs"></span>
+          </a>
+        </li>
       </ul>
 
       <div class="d-flex align-items-center gap-3">
@@ -257,6 +263,7 @@ const TRANSLATIONS = {
   fr: {
     // Navbar
     'nav.dashboard': 'Dashboard',
+    'nav.logs':    'Logs',
     'nav.logout': 'Déconnexion',
     'nav.lang':   'EN',
     // Login
@@ -311,7 +318,24 @@ const TRANSLATIONS = {
     'col.down':    'Téléch.',
     'col.up':      'Upload',
     'col.ratio':   'Ratio',
+    'col.eta':     'ETA',
     'col.actions': 'Actions',
+    // Logs qBittorrent
+    'logs.title':         'Logs qBittorrent',
+    'logs.clear':         'Effacer',
+    'logs.pause':         'Pause',
+    'logs.resume':        'Reprendre',
+    'logs.filter_all':    'Tous',
+    'logs.filter_normal': 'Normal',
+    'logs.filter_info':   'Info',
+    'logs.filter_warning':'Avertissement',
+    'logs.filter_critical':'Critique',
+    'logs.empty':         'Aucun log',
+    'logs.connecting':    'Connexion…',
+    'logs.type_normal':   'Normal',
+    'logs.type_info':     'Info',
+    'logs.type_warning':  'Avertis.',
+    'logs.type_critical': 'Critique',
     // États
     'state.uploading':          'Seed',
     'state.forcedUP':           'Forcé↑',
@@ -490,6 +514,7 @@ const TRANSLATIONS = {
   en: {
     // Navbar
     'nav.dashboard': 'Dashboard',
+    'nav.logs':    'Logs',
     'nav.logout': 'Logout',
     'nav.lang':   'FR',
     // Login
@@ -544,7 +569,24 @@ const TRANSLATIONS = {
     'col.down':    'Down',
     'col.up':      'Up',
     'col.ratio':   'Ratio',
+    'col.eta':     'ETA',
     'col.actions': 'Actions',
+    // qBittorrent logs
+    'logs.title':         'qBittorrent Logs',
+    'logs.clear':         'Clear',
+    'logs.pause':         'Pause',
+    'logs.resume':        'Resume',
+    'logs.filter_all':    'All',
+    'logs.filter_normal': 'Normal',
+    'logs.filter_info':   'Info',
+    'logs.filter_warning':'Warning',
+    'logs.filter_critical':'Critical',
+    'logs.empty':         'No logs',
+    'logs.connecting':    'Connecting…',
+    'logs.type_normal':   'Normal',
+    'logs.type_info':     'Info',
+    'logs.type_warning':  'Warning',
+    'logs.type_critical': 'Critical',
     // States
     'state.uploading':          'Seeding',
     'state.forcedUP':           'Forced↑',

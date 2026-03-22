@@ -80,7 +80,7 @@ def _set_debug(enabled: bool):
 
 app = Flask(__name__)
 
-APP_VERSION   = "1.12.0"
+APP_VERSION   = "1.13.0"
 GITHUB_REPO   = "theOSCARP2/qbittorrent-manager"
 _version_cache: dict = {"latest": None, "ts": 0.0}
 VERSION_CACHE_TTL = 3600  # 1 heure
@@ -146,7 +146,7 @@ app.secret_key = _get_secret_key()
 # ---------------------------------------------------------------------------
 _TORRENT_FIELDS = {"hash", "name", "category", "size", "progress", "state",
                    "num_seeds", "num_leechs", "dlspeed", "upspeed",
-                   "added_on", "completion_on", "save_path", "ratio"}
+                   "added_on", "completion_on", "save_path", "ratio", "eta"}
 
 # Columns sortable server-side: DataTables column index → torrent field
 _SORT_COLS = {
@@ -361,6 +361,13 @@ def trackers():
     if not is_logged_in():
         return redirect(url_for("login"))
     return render_template("trackers.html")
+
+
+@app.route("/logs")
+def logs():
+    if not is_logged_in():
+        return redirect(url_for("login"))
+    return render_template("logs.html")
 
 
 # ---------------------------------------------------------------------------
@@ -720,6 +727,19 @@ def api_torrent_set_file_priority():
                    data={"hash": hash_, "id": str(file_id), "priority": str(priority)})
         log.debug("Priorité fichier %s[%s] → %s", hash_[:8], file_id, priority)
         return jsonify({"ok": True})
+    except RuntimeError as exc:
+        return jsonify({"error": str(exc)}), 502
+
+
+@app.route("/api/qb/logs")
+def api_qb_logs():
+    if not is_logged_in():
+        return jsonify({"error": "Not authenticated"}), 401
+    last_id = request.args.get("last_id", "-1")
+    try:
+        resp = qb_request(session, "GET",
+                          f"/api/v2/log/main?last_known_id={last_id}&normal=true&info=true&warning=true&critical=true")
+        return jsonify(resp.json())
     except RuntimeError as exc:
         return jsonify({"error": str(exc)}), 502
 

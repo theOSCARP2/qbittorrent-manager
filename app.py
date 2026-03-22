@@ -80,7 +80,7 @@ def _set_debug(enabled: bool):
 
 app = Flask(__name__)
 
-APP_VERSION   = "1.13.0"
+APP_VERSION   = "1.14.0"
 GITHUB_REPO   = "theOSCARP2/qbittorrent-manager"
 _version_cache: dict = {"latest": None, "ts": 0.0}
 VERSION_CACHE_TTL = 3600  # 1 heure
@@ -754,11 +754,11 @@ def api_tracker_bulk():
     old_url = (body.get("old_url") or "").strip()
     new_url = (body.get("new_url") or "").strip()
 
-    if operation not in ("replace", "add", "remove"):
+    if operation not in ("replace", "add", "remove", "copy"):
         return jsonify({"error": "Invalid operation"}), 400
-    if operation in ("replace", "remove") and not old_url:
+    if operation in ("replace", "remove", "copy") and not old_url:
         return jsonify({"error": "old_url is required"}), 400
-    if operation in ("replace", "add") and not new_url:
+    if operation in ("replace", "add", "copy") and not new_url:
         return jsonify({"error": "new_url is required"}), 400
 
     try:
@@ -775,6 +775,30 @@ def api_tracker_bulk():
         for torrent in torrents_list:
             t_hash = torrent.get("hash", "")
             t_name = torrent.get("name", t_hash)
+            try:
+                qb_request(session, "POST", "/api/v2/torrents/addTrackers",
+                            data={"hash": t_hash, "urls": new_url})
+                success += 1
+                details.append({"name": t_name, "status": "ok"})
+            except RuntimeError as exc:
+                failed += 1
+                details.append({"name": t_name, "status": "error", "message": str(exc)})
+
+    elif operation == "copy":
+        target_torrents = []
+        for torrent in torrents_list:
+            t_hash = torrent.get("hash", "")
+            t_name = torrent.get("name", t_hash)
+            try:
+                tr_resp = qb_request(session, "GET", f"/api/v2/torrents/trackers?hash={t_hash}")
+                if old_url in [t.get("url", "") for t in tr_resp.json()]:
+                    target_torrents.append({"hash": t_hash, "name": t_name})
+            except RuntimeError:
+                continue
+
+        for torrent in target_torrents:
+            t_hash = torrent["hash"]
+            t_name = torrent["name"]
             try:
                 qb_request(session, "POST", "/api/v2/torrents/addTrackers",
                             data={"hash": t_hash, "urls": new_url})

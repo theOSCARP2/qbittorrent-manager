@@ -5,6 +5,15 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.14.0] - 2026-03-22
+
+### Ajouté
+- Trackers : nouvel onglet "Cross-Seed" dans les opérations en masse
+  - Ajouter un tracker à tous les torrents qui utilisent déjà un tracker source, sans supprimer le tracker source
+  - Bouton rapide dans chaque ligne du tableau pour pré-remplir le tracker source
+
+---
+
 ## [1.13.0] - 2026-03-22
 
 ### Ajouté

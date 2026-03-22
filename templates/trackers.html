@@ -189,6 +189,13 @@
               <i class="bi bi-dash-lg me-1"></i><span data-i18n="trackers.tab_remove"></span>
             </button>
           </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link px-3 py-1" id="tab-copy"
+                    data-bs-toggle="pill" data-bs-target="#pane-copy"
+                    type="button" role="tab">
+              <i class="bi bi-node-plus me-1"></i><span data-i18n="trackers.tab_copy"></span>
+            </button>
+          </li>
         </ul>
 
         <div class="tab-content">
@@ -234,6 +241,24 @@
             </div>
             <button class="btn btn-danger w-100" id="btn-do-remove">
               <i class="bi bi-dash-lg me-2"></i><span data-i18n="trackers.remove_btn"></span>
+            </button>
+          </div>
+
+          <!-- Copy tab -->
+          <div class="tab-pane fade" id="pane-copy" role="tabpanel">
+            <p class="text-secondary" style="font-size:.85rem;" data-i18n="trackers.copy_desc"></p>
+            <div class="mb-3">
+              <label class="form-label text-secondary fw-semibold" for="copy-source" data-i18n="trackers.copy_source_label"></label>
+              <input type="url" class="form-control"
+                     id="copy-source" placeholder="https://source.tracker.example/announce" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-secondary fw-semibold" for="copy-new" data-i18n="trackers.copy_new_label"></label>
+              <input type="url" class="form-control"
+                     id="copy-new" placeholder="https://new.tracker.example/announce" />
+            </div>
+            <button class="btn btn-info w-100" id="btn-do-copy">
+              <i class="bi bi-node-plus me-2"></i><span data-i18n="trackers.copy_btn"></span>
             </button>
           </div>
 
@@ -366,6 +391,7 @@ async function loadTrackers() {
             return `<div class="d-flex gap-1" data-url="${u}">
               <button class="btn btn-sm btn-outline-info"      data-action="details"  title="${__('trackers.action_details')}"><i class="bi bi-info-circle"></i></button>
               <button class="btn btn-sm btn-outline-secondary" data-action="replace"  title="${__('trackers.action_replace')}"><i class="bi bi-arrow-left-right"></i></button>
+              <button class="btn btn-sm btn-outline-primary"   data-action="copy"     title="${__('trackers.action_copy')}"><i class="bi bi-node-plus"></i></button>
               <button class="btn btn-sm btn-outline-danger"    data-action="delete"   title="${__('trackers.action_delete')}"><i class="bi bi-trash"></i></button>
             </div>`;
           },
@@ -576,6 +602,7 @@ document.getElementById('trackers-table').addEventListener('click', e => {
   const action = btn.dataset.action;
   if      (action === 'details') showDetails(url);
   else if (action === 'replace') prefillReplace(url);
+  else if (action === 'copy')    prefillCopy(url);
   else if (action === 'delete')  deleteTrackers([url]);
 });
 
@@ -625,6 +652,14 @@ function prefillReplace(url) {
   document.getElementById('replace-old').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
+// ─── Pre-fill Copy tab from table ────────────────────────────────────────────
+function prefillCopy(url) {
+  document.getElementById('copy-source').value = url;
+  bootstrap.Tab.getOrCreateInstance(document.getElementById('tab-copy')).show();
+  document.getElementById('copy-new').focus();
+  document.getElementById('copy-source').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 // ─── Bulk operations ─────────────────────────────────────────────────────────
 
 async function doBulkOp(operation, oldUrl, newUrl) {
@@ -632,6 +667,7 @@ async function doBulkOp(operation, oldUrl, newUrl) {
     replace: document.getElementById('btn-do-replace'),
     add:     document.getElementById('btn-do-add'),
     remove:  document.getElementById('btn-do-remove'),
+    copy:    document.getElementById('btn-do-copy'),
   };
   const btn = btnMap[operation];
   const origHtml = btn.innerHTML;
@@ -717,6 +753,15 @@ document.getElementById('btn-do-remove').addEventListener('click', () => {
   const url = document.getElementById('remove-url').value.trim();
   if (!url) { showToast(__('trackers.url_required'), 'warning'); return; }
   doBulkOp('remove', url, '');
+});
+
+document.getElementById('btn-do-copy').addEventListener('click', () => {
+  const sourceUrl = document.getElementById('copy-source').value.trim();
+  const newUrl    = document.getElementById('copy-new').value.trim();
+  if (!sourceUrl) { showToast(__('trackers.old_url_required'), 'warning'); return; }
+  if (!newUrl)    { showToast(__('trackers.new_url_required'), 'warning'); return; }
+  if (sourceUrl === newUrl) { showToast(__('trackers.urls_identical'), 'warning'); return; }
+  doBulkOp('copy', sourceUrl, newUrl);
 });
 
 document.getElementById('btn-refresh-trackers').addEventListener('click', loadTrackers);

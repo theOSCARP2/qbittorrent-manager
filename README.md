@@ -14,7 +14,7 @@ Une interface web Flask légère pour gérer une instance qBittorrent à distanc
 - **Liste des torrents** — tableau paginé, triable et recherchable (DataTables côté serveur)
 - **Actions sur les torrents** — pause, reprise, vérification, suppression (avec ou sans fichiers)
 - **Vue des trackers** — liste de tous les trackers sur l'ensemble des torrents avec statut OK/erreur/en attente
-- **Opérations en masse sur les trackers** — ajouter, remplacer ou supprimer une URL de tracker sur tous les torrents
+- **Opérations en masse sur les trackers** — ajouter, remplacer, supprimer ou copier une URL de tracker sur tous les torrents (dont l'ajout d'un tracker à tous les torrents d'un tracker source)
 - **Cache en arrière-plan** — la liste des torrents est mise en cache et rafraîchie automatiquement toutes les 30 secondes
 - **Panneau détail** — clic sur un torrent pour afficher toutes ses informations dans un panneau latéral
 - **Interface multilingue** — français par défaut, anglais disponible via le bouton FR/EN dans la barre de navigation (préférence sauvegardée dans le navigateur)

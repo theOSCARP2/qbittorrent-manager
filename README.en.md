@@ -14,7 +14,7 @@ A lightweight Flask web interface to manage a remote qBittorrent instance.
 - **Torrent list** — paginated, sortable and searchable table (server-side DataTables)
 - **Torrent actions** — pause, resume, recheck, delete (with or without files)
 - **Tracker view** — list of all trackers across all torrents with OK/error/pending status
-- **Bulk tracker operations** — add, replace or remove a tracker URL across all torrents
+- **Bulk tracker operations** — add, replace, remove or copy a tracker URL across all torrents (including adding a tracker to all torrents that share a source tracker)
 - **Background cache** — torrent list is cached and automatically refreshed every 30 seconds
 - **Detail panel** — click a torrent to display all its information in a side panel
 - **Multilingual UI** — French by default, English available via the FR/EN button in the navbar (preference saved in the browser)

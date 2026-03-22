@@ -73,6 +73,23 @@ chmod +x qbittorrent-manager-linux  # or qbittorrent-manager-macos-arm64 / qbitt
 ./qbittorrent-manager-linux
 ```
 
+### Via Docker (recommended for NAS / server)
+
+```bash
+docker run -d \
+  --name qbittorrent-manager \
+  --restart unless-stopped \
+  -p 5000:5000 \
+  -v qbm-data:/root/.qbittorrent-manager \
+  ghcr.io/theoscarp2/qbittorrent-manager:latest
+```
+
+Or with Docker Compose:
+
+```bash
+docker compose up -d
+```
+
 ### From source
 
 ```bash

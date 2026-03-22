@@ -1,0 +1,16 @@
+services:
+  qbittorrent-manager:
+    image: ghcr.io/theoscarp2/qbittorrent-manager:latest
+    container_name: qbittorrent-manager
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - qbm-data:/root/.qbittorrent-manager
+    environment:
+      # Optional: set a fixed secret key (recommended for production)
+      # SECRET_KEY: "change-me-to-a-random-string"
+      TZ: Europe/Paris
+
+volumes:
+  qbm-data:

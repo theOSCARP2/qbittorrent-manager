@@ -5,6 +5,16 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.16.0] - 2026-03-22
+
+### Ajouté
+- Image Docker publiée automatiquement sur GitHub Container Registry (`ghcr.io`) à chaque release
+  - Tags : version exacte (`1.16.0`), mineur (`1.16`) et `latest`
+  - `docker-compose.yml` fourni pour un démarrage rapide
+  - Volume persistant pour la clé secrète de session
+
+---
+
 ## [1.15.0] - 2026-03-22
 
 ### Ajouté

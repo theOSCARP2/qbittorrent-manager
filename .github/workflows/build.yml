@@ -128,9 +128,43 @@ jobs:
           name: macos-intel
           path: dist/qbittorrent-manager-macos-intel
 
+  build-docker:
+    name: Docker (ghcr.io)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Se connecter à ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extraire les métadonnées Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
+
+      - name: Build et push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
   release:
     name: Créer la release
-    needs: [build-windows, build-linux, build-macos-arm64, build-macos-intel]
+    needs: [build-windows, build-linux, build-macos-arm64, build-macos-intel, build-docker]
     runs-on: ubuntu-latest
     permissions:
       contents: write

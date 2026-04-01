@@ -5,6 +5,14 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.18.0] - 2026-04-01
+
+### Ajouté
+- Ajout de torrents depuis l'interface : lien magnet, URL ou fichier `.torrent`, avec choix de la catégorie, du répertoire de destination et option "démarrer en pause"
+- Notifications navigateur : bouton cloche 🔔 dans la navbar pour activer les alertes — une notification système s'affiche automatiquement quand un torrent atteint 100%
+
+---
+
 ## [1.17.0] - 2026-03-22
 
 ### Amélioré

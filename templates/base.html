@@ -244,6 +244,7 @@
         </span>
         <button class="btn btn-sm btn-outline-secondary" id="btn-lang" title="Switch language"></button>
         <button class="btn btn-sm btn-outline-secondary" id="btn-theme" title="Toggle theme"><i id="theme-icon" class="bi bi-moon-stars-fill"></i></button>
+        <button class="btn btn-sm btn-outline-secondary" id="btn-notif" title="Notifications"><i class="bi bi-bell"></i></button>
         <button class="btn btn-sm btn-outline-secondary" id="btn-debug" title="Mode debug"><i class="bi bi-bug"></i></button>
         <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-danger">
           <i class="bi bi-box-arrow-right me-1"></i><span data-i18n="nav.logout"></span>
@@ -1011,6 +1012,41 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+// ── Notifications navigateur ─────────────────────────────────────────────────
+(function() {
+  const btn = document.getElementById('btn-notif');
+  if (!btn) return;
+
+  function _updateBell() {
+    if (!('Notification' in window)) { btn.style.display = 'none'; return; }
+    const granted = Notification.permission === 'granted';
+    const denied  = Notification.permission === 'denied';
+    btn.innerHTML = granted
+      ? '<i class="bi bi-bell-fill"></i>'
+      : '<i class="bi bi-bell"></i>';
+    btn.classList.toggle('btn-warning',  granted);
+    btn.classList.toggle('btn-outline-secondary', !granted);
+    if (denied) btn.title = 'Notifications bloquées par le navigateur';
+  }
+
+  _updateBell();
+
+  btn.addEventListener('click', async () => {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'denied') {
+      showToast('Notifications bloquées — autorisez-les dans les paramètres du navigateur.', 'warning');
+      return;
+    }
+    if (Notification.permission === 'granted') {
+      showToast('Notifications déjà activées.', 'info');
+      return;
+    }
+    const result = await Notification.requestPermission();
+    _updateBell();
+    if (result === 'granted') showToast(__('notif.permission_ask'), 'success');
+  });
+})();
 
 // ── Vérification de version ───────────────────────────────────────────────────
 fetch('/api/version/check')

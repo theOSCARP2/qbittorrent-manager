@@ -250,7 +250,30 @@ document.getElementById('cat-tab-size').addEventListener('click', () => {
 
 // ── Speed chart ──────────────────────────────────────────────────────────────
 const MAX_HISTORY = 20;
-const speedLabels = [], speedDL = [], speedUP = [];
+const SPEED_STORAGE_KEY = 'qbm-speed-history';
+const SPEED_MAX_AGE_MS  = 5 * 60 * 1000; // 5 minutes
+
+function _loadSpeedHistory() {
+  try {
+    const raw = localStorage.getItem(SPEED_STORAGE_KEY);
+    if (!raw) return { labels: [], dl: [], up: [] };
+    const { labels, dl, up, ts } = JSON.parse(raw);
+    // Ignorer si les données ont plus de 5 minutes (session trop ancienne)
+    if (!ts || Date.now() - ts > SPEED_MAX_AGE_MS) return { labels: [], dl: [], up: [] };
+    return { labels: labels || [], dl: dl || [], up: up || [] };
+  } catch { return { labels: [], dl: [], up: [] }; }
+}
+
+function _saveSpeedHistory() {
+  try {
+    localStorage.setItem(SPEED_STORAGE_KEY, JSON.stringify({
+      labels: speedLabels, dl: speedDL, up: speedUP, ts: Date.now(),
+    }));
+  } catch {}
+}
+
+const _hist = _loadSpeedHistory();
+const speedLabels = _hist.labels, speedDL = _hist.dl, speedUP = _hist.up;
 
 function getCSSVar(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -310,6 +333,7 @@ function updateSpeedChart(dl, up) {
   speedLabels.push(label); speedDL.push(dl); speedUP.push(up);
   if (speedLabels.length > MAX_HISTORY) { speedLabels.shift(); speedDL.shift(); speedUP.shift(); }
   speedChart.update();
+  _saveSpeedHistory();
 }
 
 function loadDashboard() {

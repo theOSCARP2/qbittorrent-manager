@@ -5,6 +5,13 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.19.0] - 2026-04-01
+
+### Amélioré
+- Dashboard : l'historique du graphique de vitesse est conservé dans le navigateur (localStorage) lors des changements de page, avec expiration automatique après 5 minutes d'inactivité
+
+---
+
 ## [1.18.0] - 2026-04-01
 
 ### Ajouté

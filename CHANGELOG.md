@@ -5,6 +5,13 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.21.1] - 2026-04-02
+
+### Corrigé
+- Docker : ajout de `core/` et `routes/` dans le `Dockerfile` (manquants depuis le refactoring)
+
+---
+
 ## [1.21.0] - 2026-04-02
 
 ### Technique

@@ -5,6 +5,24 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.21.0] - 2026-04-02
+
+### Technique
+- Refactorisation : `app.py` (1 181 lignes) découpé en modules `core/` et `routes/` (Blueprints Flask)
+  - `core/config.py` — constantes, version, clé secrète, mode debug
+  - `core/qb_client.py` — client HTTP qBittorrent, gestion des sessions
+  - `core/cache.py` — cache des torrents, rafraîchissement en arrière-plan
+  - `routes/auth.py` — login, logout
+  - `routes/pages.py` — pages HTML (dashboard, torrents, trackers, catégories, logs)
+  - `routes/torrents.py` — API torrents
+  - `routes/trackers.py` — API trackers
+  - `routes/categories.py` — API catégories
+  - `routes/dashboard.py` — API dashboard
+  - `routes/system.py` — API version, debug, logs qBittorrent
+- Aucun changement fonctionnel
+
+---
+
 ## [1.20.0] - 2026-04-02
 
 ### Ajouté

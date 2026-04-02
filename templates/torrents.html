@@ -32,6 +32,9 @@
     <button class="btn btn-sm btn-primary text-nowrap" id="btn-add-torrent">
       <i class="bi bi-plus-circle me-1"></i><span data-i18n="add.title"></span>
     </button>
+    <button class="btn btn-sm btn-outline-secondary text-nowrap" id="btn-create-torrent">
+      <i class="bi bi-file-earmark-plus me-1"></i><span data-i18n="create.title"></span>
+    </button>
     <button class="btn btn-sm btn-outline-secondary" id="btn-refresh">
       <i class="bi bi-arrow-clockwise me-1"></i><span data-i18n="torrents.refresh"></span>
     </button>
@@ -151,6 +154,101 @@
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="modal.cancel"></button>
         <button type="button" class="btn btn-primary" id="btn-add-confirm">
           <i class="bi bi-plus-circle me-1"></i><span data-i18n="add.submit"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create torrent modal -->
+<div class="modal fade" id="createModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-file-earmark-plus me-2 text-primary"></i><span data-i18n="create.title"></span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Onglets source -->
+        <div class="d-flex gap-2 mb-3">
+          <button class="btn btn-sm btn-primary" id="create-tab-upload"><i class="bi bi-upload me-1"></i><span data-i18n="create.tab_upload"></span></button>
+          <button class="btn btn-sm btn-outline-secondary" id="create-tab-server"><i class="bi bi-hdd me-1"></i><span data-i18n="create.tab_server"></span></button>
+        </div>
+
+        <!-- Panneau upload -->
+        <div id="create-panel-upload" class="mb-3">
+          <label class="form-label text-secondary small mb-1" data-i18n="create.upload_label"></label>
+          <input type="file" id="create-files" class="form-control form-control-sm" multiple>
+          <div class="form-check mt-2">
+            <input type="checkbox" class="form-check-input" id="create-folder-mode">
+            <label class="form-check-label text-secondary small" for="create-folder-mode" data-i18n="create.folder_mode"></label>
+          </div>
+          <div id="create-file-list" class="mt-2 text-secondary small" style="max-height:80px;overflow-y:auto;"></div>
+        </div>
+
+        <!-- Panneau chemin serveur -->
+        <div id="create-panel-server" class="mb-3" style="display:none;">
+          <label class="form-label text-secondary small mb-1" data-i18n="create.path_label"></label>
+          <input type="text" id="create-path" class="form-control form-control-sm font-monospace"
+                 placeholder="/data/mes-fichiers">
+        </div>
+
+        <!-- Options communes -->
+        <div class="row g-2 mb-3">
+          <div class="col-md-6">
+            <label class="form-label text-secondary small mb-1" data-i18n="create.name_label"></label>
+            <input type="text" id="create-name" class="form-control form-control-sm">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label text-secondary small mb-1" data-i18n="create.piece_label"></label>
+            <select id="create-piece-size" class="form-select form-select-sm">
+              <option value="0"         data-i18n="create.piece_auto"></option>
+              <option value="262144">256 KB</option>
+              <option value="524288">512 KB</option>
+              <option value="1048576">1 MB</option>
+              <option value="2097152">2 MB</option>
+              <option value="4194304">4 MB</option>
+              <option value="8388608">8 MB</option>
+              <option value="16777216">16 MB</option>
+            </select>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label text-secondary small mb-1" data-i18n="create.trackers_label"></label>
+          <textarea id="create-trackers" class="form-control form-control-sm font-monospace" rows="3"
+                    placeholder="https://tracker.exemple.com/announce"></textarea>
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-md-6">
+            <label class="form-label text-secondary small mb-1" data-i18n="create.comment_label"></label>
+            <input type="text" id="create-comment" class="form-control form-control-sm">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label text-secondary small mb-1" data-i18n="create.source_label"></label>
+            <input type="text" id="create-source" class="form-control form-control-sm">
+          </div>
+        </div>
+        <div class="d-flex gap-3">
+          <div class="form-check">
+            <input type="checkbox" class="form-check-input" id="create-private">
+            <label class="form-check-label text-secondary small" for="create-private" data-i18n="create.private"></label>
+          </div>
+          <div class="form-check">
+            <input type="checkbox" class="form-check-input" id="create-add-to-qb" checked>
+            <label class="form-check-label text-secondary small" for="create-add-to-qb" data-i18n="create.add_to_qb"></label>
+          </div>
+        </div>
+        <div id="create-progress" class="mt-3 text-secondary small" style="display:none;">
+          <div class="spinner-border spinner-border-sm me-2"></div><span data-i18n="create.creating"></span>
+        </div>
+      </div>
+      <div class="modal-footer border-secondary">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="modal.cancel"></button>
+        <button type="button" class="btn btn-primary" id="btn-create-confirm">
+          <i class="bi bi-file-earmark-plus me-1"></i><span data-i18n="create.submit"></span>
         </button>
       </div>
     </div>
@@ -911,6 +1009,140 @@ document.getElementById('btn-add-confirm').addEventListener('click', async () =>
     showToast(__('add.error') + ' ' + err.message, 'danger');
   } finally {
     btn.disabled = false;
+  }
+});
+
+// ── Create torrent modal ──────────────────────────────────────────────────────
+const createModal  = new bootstrap.Modal(document.getElementById('createModal'));
+let createActiveTab = 'upload';
+
+function createSwitchTab(tab) {
+  createActiveTab = tab;
+  document.getElementById('create-panel-upload').style.display = tab === 'upload' ? '' : 'none';
+  document.getElementById('create-panel-server').style.display = tab === 'server' ? '' : 'none';
+  document.getElementById('create-tab-upload').className = 'btn btn-sm ' + (tab === 'upload' ? 'btn-primary' : 'btn-outline-secondary');
+  document.getElementById('create-tab-server').className = 'btn btn-sm ' + (tab === 'server' ? 'btn-primary' : 'btn-outline-secondary');
+}
+
+document.getElementById('create-tab-upload').addEventListener('click', () => createSwitchTab('upload'));
+document.getElementById('create-tab-server').addEventListener('click', () => createSwitchTab('server'));
+
+// Basculer input file entre fichiers multiples et dossier entier
+document.getElementById('create-folder-mode').addEventListener('change', function() {
+  const inp = document.getElementById('create-files');
+  if (this.checked) {
+    inp.setAttribute('webkitdirectory', '');
+    inp.removeAttribute('multiple');
+  } else {
+    inp.removeAttribute('webkitdirectory');
+    inp.setAttribute('multiple', '');
+  }
+  inp.value = '';
+  document.getElementById('create-file-list').textContent = '';
+});
+
+// Afficher la liste des fichiers sélectionnés
+document.getElementById('create-files').addEventListener('change', function() {
+  const list = document.getElementById('create-file-list');
+  const files = [...this.files];
+  if (!files.length) { list.textContent = ''; return; }
+  list.textContent = files.map(f => f.webkitRelativePath || f.name).join('\n');
+});
+
+document.getElementById('btn-create-torrent').addEventListener('click', () => {
+  document.getElementById('create-files').value        = '';
+  document.getElementById('create-file-list').textContent = '';
+  document.getElementById('create-folder-mode').checked = false;
+  document.getElementById('create-files').removeAttribute('webkitdirectory');
+  document.getElementById('create-files').setAttribute('multiple', '');
+  document.getElementById('create-path').value         = '';
+  document.getElementById('create-name').value         = '';
+  document.getElementById('create-trackers').value     = '';
+  document.getElementById('create-comment').value      = '';
+  document.getElementById('create-source').value       = '';
+  document.getElementById('create-piece-size').value   = '0';
+  document.getElementById('create-private').checked    = false;
+  document.getElementById('create-add-to-qb').checked  = true;
+  document.getElementById('create-progress').style.display = 'none';
+  createSwitchTab('upload');
+  createModal.show();
+});
+
+async function _downloadTorrentResponse(resp) {
+  const blob        = await resp.blob();
+  const disposition = resp.headers.get('Content-Disposition') || '';
+  const match       = disposition.match(/filename="?([^"]+)"?/);
+  const filename    = match ? match[1] : 'torrent.torrent';
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('btn-create-confirm').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-create-confirm');
+  btn.disabled = true;
+  document.getElementById('create-progress').style.display = 'block';
+
+  try {
+    let resp;
+
+    if (createActiveTab === 'upload') {
+      const files = [...document.getElementById('create-files').files];
+      if (!files.length) { showToast(__('create.no_files'), 'warning'); return; }
+
+      const fd = new FormData();
+      files.forEach(f => {
+        fd.append('files[]', f, f.name);
+        fd.append('rel_paths[]', f.webkitRelativePath || f.name);
+      });
+      fd.append('name',       document.getElementById('create-name').value.trim());
+      fd.append('trackers',   document.getElementById('create-trackers').value);
+      fd.append('piece_size', document.getElementById('create-piece-size').value);
+      fd.append('private',    document.getElementById('create-private').checked ? 'true' : 'false');
+      fd.append('comment',    document.getElementById('create-comment').value.trim());
+      fd.append('source',     document.getElementById('create-source').value.trim());
+      fd.append('add_to_qb',  document.getElementById('create-add-to-qb').checked ? 'true' : 'false');
+
+      resp = await fetch('/api/torrent/create', { method: 'POST', body: fd });
+
+    } else {
+      const path = document.getElementById('create-path').value.trim();
+      if (!path) { showToast(__('create.path_required'), 'warning'); return; }
+
+      resp = await fetch('/api/torrent/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          path:       path,
+          name:       document.getElementById('create-name').value.trim(),
+          trackers:   document.getElementById('create-trackers').value,
+          piece_size: parseInt(document.getElementById('create-piece-size').value),
+          private:    document.getElementById('create-private').checked,
+          comment:    document.getElementById('create-comment').value.trim(),
+          source:     document.getElementById('create-source').value.trim(),
+          add_to_qb:  document.getElementById('create-add-to-qb').checked,
+        }),
+      });
+    }
+
+    if (!resp.ok) {
+      const data = await resp.json().catch(() => ({}));
+      showToast(data.error || __('create.error'), 'danger');
+      return;
+    }
+
+    await _downloadTorrentResponse(resp);
+    createModal.hide();
+    showToast(__('create.success'), 'success');
+    if (document.getElementById('create-add-to-qb').checked) {
+      setTimeout(() => dt.ajax.reload(null, false), 2000);
+    }
+  } catch (err) {
+    showToast(__('create.error') + ' ' + err.message, 'danger');
+  } finally {
+    btn.disabled = false;
+    document.getElementById('create-progress').style.display = 'none';
   }
 });
 

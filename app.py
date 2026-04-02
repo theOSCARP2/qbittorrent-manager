@@ -5,7 +5,7 @@ import logging
 import requests
 from flask import (
     Flask, session, redirect, url_for, request,
-    render_template, jsonify, flash
+    render_template, jsonify, flash, send_file
 )
 
 # ---------------------------------------------------------------------------
@@ -80,7 +80,7 @@ def _set_debug(enabled: bool):
 
 app = Flask(__name__)
 
-APP_VERSION   = "1.19.0"
+APP_VERSION   = "1.20.0"
 GITHUB_REPO   = "theOSCARP2/qbittorrent-manager"
 _version_cache: dict = {"latest": None, "ts": 0.0}
 VERSION_CACHE_TTL = 3600  # 1 heure
@@ -599,6 +599,107 @@ def api_torrent_add():
         return jsonify({"error": resp.text.strip()}), 400
     except RuntimeError as exc:
         return jsonify({"error": str(exc)}), 502
+
+
+@app.route("/api/torrent/create", methods=["POST"])
+def api_torrent_create():
+    if not is_logged_in():
+        return jsonify({"error": "Not authenticated"}), 401
+    try:
+        import torf
+        import tempfile
+        import shutil
+        import io as _io
+    except ImportError:
+        return jsonify({"error": "La librairie 'torf' n'est pas installée (pip install torf)."}), 500
+
+    is_upload = "multipart/form-data" in (request.content_type or "")
+    tmpdir = None
+
+    try:
+        if is_upload:
+            # ── Mode upload : fichiers envoyés depuis le navigateur ──────────
+            files     = request.files.getlist("files[]")
+            rel_paths = request.form.getlist("rel_paths[]")
+            name       = (request.form.get("name") or "").strip()
+            trackers   = [t.strip() for t in (request.form.get("trackers") or "").splitlines() if t.strip()]
+            piece_size = int(request.form.get("piece_size") or 0)
+            private    = request.form.get("private") == "true"
+            comment    = (request.form.get("comment") or "").strip()
+            source     = (request.form.get("source") or "").strip()
+            add_to_qb  = request.form.get("add_to_qb") == "true"
+
+            if not files:
+                return jsonify({"error": "Aucun fichier reçu."}), 400
+
+            tmpdir = tempfile.mkdtemp(prefix="qbm-create-")
+            for f, rel in zip(files, rel_paths or [f.filename for f in files]):
+                dest = os.path.join(tmpdir, rel.replace("/", os.sep).replace("\\", os.sep))
+                os.makedirs(os.path.dirname(dest), exist_ok=True)
+                f.save(dest)
+
+            top = os.listdir(tmpdir)
+            torrent_input = os.path.join(tmpdir, top[0]) if len(top) == 1 else tmpdir
+
+        else:
+            # ── Mode chemin serveur ──────────────────────────────────────────
+            body       = request.get_json(force=True) or {}
+            path_str   = (body.get("path") or "").strip()
+            name       = (body.get("name") or "").strip()
+            trackers   = [t.strip() for t in (body.get("trackers") or "").splitlines() if t.strip()]
+            piece_size = int(body.get("piece_size") or 0)
+            private    = bool(body.get("private", False))
+            comment    = (body.get("comment") or "").strip()
+            source     = (body.get("source") or "").strip()
+            add_to_qb  = bool(body.get("add_to_qb", True))
+
+            if not path_str:
+                return jsonify({"error": "Veuillez saisir un chemin."}), 400
+            if not os.path.exists(path_str):
+                return jsonify({"error": f"Chemin introuvable : {path_str}"}), 400
+            torrent_input = path_str
+
+        # ── Création du torrent ──────────────────────────────────────────────
+        t = torf.Torrent(path=torrent_input)
+        if name:        t.name       = name
+        if trackers:    t.trackers   = [[tr] for tr in trackers]
+        if piece_size:  t.piece_size = piece_size
+        t.private = private
+        if comment:     t.comment    = comment
+        if source:      t.source     = source
+
+        t.generate(threads=2)
+
+        torrent_name = t.name or "torrent"
+        tmp_f = tempfile.NamedTemporaryFile(suffix=".torrent", delete=False)
+        tmp_f.close()
+        t.write(tmp_f.name, overwrite=True)
+
+        with open(tmp_f.name, "rb") as f:
+            torrent_bytes = f.read()
+        os.unlink(tmp_f.name)
+
+        if add_to_qb:
+            qb_request(session, "POST", "/api/v2/torrents/add",
+                       files={"torrents": (f"{torrent_name}.torrent",
+                                           torrent_bytes,
+                                           "application/x-bittorrent")})
+            _cache.invalidate()
+            _start_bg_fetch({"qb_url": session["qb_url"], "qb_sid": session["qb_sid"]})
+            log.info("Torrent créé et ajouté à qBittorrent : %s", torrent_name)
+
+        return send_file(
+            _io.BytesIO(torrent_bytes),
+            as_attachment=True,
+            download_name=f"{torrent_name}.torrent",
+            mimetype="application/x-bittorrent",
+        )
+    except Exception as exc:
+        log.error("Erreur création torrent : %s", exc)
+        return jsonify({"error": str(exc)}), 500
+    finally:
+        if tmpdir:
+            shutil.rmtree(tmpdir, ignore_errors=True)
 
 
 @app.route("/api/torrent/trackers")

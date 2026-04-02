@@ -5,6 +5,13 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.20.0] - 2026-04-02
+
+### Ajouté
+- Création de torrent : onglet **Fichiers locaux** permettant d'uploader des fichiers (ou un dossier entier via Chrome/Edge) depuis le navigateur, en complément du mode **Chemin serveur** existant
+
+---
+
 ## [1.19.0] - 2026-04-01
 
 ### Amélioré

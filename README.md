@@ -24,6 +24,7 @@ Une interface web Flask légère pour gérer une instance qBittorrent à distanc
 - **Priorité des fichiers** — menu déroulant par fichier dans le panneau détail (Ne pas télécharger / Normal / Haute / Maximum)
 - **Mode debug** — activable depuis l'interface web (bouton 🐛 dans la navbar), affiche les logs détaillés dans la console sans redémarrer
 - **Ajout de torrents** — ajouter un torrent via lien magnet/URL ou fichier .torrent, avec options catégorie, répertoire et démarrage en pause
+- **Création de torrents** — créer un fichier `.torrent` depuis des fichiers locaux (upload navigateur) ou un chemin sur le serveur, avec options trackers, taille des pièces, privé, commentaire et ajout automatique à qBittorrent
 - **Changement de catégorie** — modifier la catégorie d'un torrent directement depuis le panneau détail
 - **Trackers dans le panneau détail** — liste des trackers avec icône de statut (actif / erreur / en attente)
 - **Filtres intégrés au tableau** — filtres état et catégorie directement dans les en-têtes de colonnes

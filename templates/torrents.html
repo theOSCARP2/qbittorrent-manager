@@ -492,7 +492,9 @@ function initTable() {
           (json.data || []).forEach(t => torrentDataMap[t.hash] = t);
 
           // Mettre à jour le panneau si le torrent affiché est dans ce batch
-          if (currentDetailHash && torrentDataMap[currentDetailHash]) {
+          // (sauf si une édition est en cours dans le panneau)
+          const _editOpen = document.getElementById('save-path-edit')?.classList.contains('d-none') === false;
+          if (currentDetailHash && torrentDataMap[currentDetailHash] && !_editOpen) {
             renderDetailPanel(torrentDataMap[currentDetailHash], currentDetailProps, currentDetailFiles, currentDetailTrackers);
           }
 
@@ -662,13 +664,45 @@ function renderDetailPanel(t, props, files, trackers) {
         <div class="detail-value">${createdOn}</div>
       </div>
       <div class="col-12">
-        <div class="detail-label">${__('detail.save_path')}</div>
-        <div class="detail-value" style="word-break:break-all;font-size:.82rem;">${escHtml(t.save_path || '—')}</div>
+        <div class="detail-label d-flex align-items-center justify-content-between">
+          <span>${__('detail.save_path')}</span>
+          <button class="btn btn-link btn-sm p-0 ms-2" id="btn-edit-save-path" style="font-size:.75rem;">${__('detail.edit_save_path')}</button>
+        </div>
+        <div id="save-path-display" class="detail-value" style="word-break:break-all;font-size:.82rem;">${escHtml(t.save_path || '—')}</div>
+        <div id="save-path-edit" class="d-none mt-1">
+          <div class="input-group input-group-sm">
+            <input type="text" class="form-control form-control-sm" id="save-path-input" value="${escHtml(t.save_path || '')}" data-hash="${escHtml(t.hash||'')}">
+            <button class="btn btn-primary btn-sm" id="btn-save-path-ok">${__('detail.save_path_save')}</button>
+            <button class="btn btn-outline-secondary btn-sm" id="btn-save-path-cancel">${__('detail.save_path_cancel')}</button>
+          </div>
+        </div>
       </div>
       <div class="col-12">
         <div class="detail-label">${__('detail.comment')}</div>
         <div class="detail-value" style="word-break:break-word;font-size:.82rem;">${escHtml(comment)}</div>
       </div>
+    </div>
+
+    <!-- Limites de vitesse -->
+    <div class="mb-3 p-2 rounded" style="background:var(--qbm-bg);border:1px solid var(--qbm-border);">
+      <div class="detail-label mb-2">${__('detail.speed_limit')}</div>
+      ${props !== null ? (() => {
+        const dlVal = props && props.dl_limit > 0 ? Math.round(props.dl_limit / 1024) : 0;
+        const upVal = props && props.up_limit > 0 ? Math.round(props.up_limit / 1024) : 0;
+        return `<div class="row g-2 align-items-end">
+          <div class="col-5">
+            <label class="form-label" style="font-size:.75rem;color:var(--qbm-text-muted);">${__('detail.dl_limit')}</label>
+            <input type="number" class="form-control form-control-sm" id="speed-dl-limit" min="0" value="${dlVal}" data-hash="${escHtml(t.hash||'')}">
+          </div>
+          <div class="col-5">
+            <label class="form-label" style="font-size:.75rem;color:var(--qbm-text-muted);">${__('detail.up_limit')}</label>
+            <input type="number" class="form-control form-control-sm" id="speed-up-limit" min="0" value="${upVal}">
+          </div>
+          <div class="col-2">
+            <button class="btn btn-primary btn-sm w-100" id="btn-apply-speed-limits">${__('detail.apply_limits')}</button>
+          </div>
+        </div>`;
+      })() : `<div class="text-secondary" style="font-size:.82rem;">…</div>`}
     </div>
 
     <!-- Fichiers -->
@@ -1209,6 +1243,75 @@ function loadStates() {
     });
 }
 
+
+// ── Limites de vitesse (délégation sur document) ─────────────────────────────
+document.addEventListener('click', async e => {
+  if (!e.target.matches('#btn-apply-speed-limits')) return;
+  const hash  = document.getElementById('speed-dl-limit')?.dataset.hash;
+  const dlKbs = parseInt(document.getElementById('speed-dl-limit')?.value || '0', 10);
+  const upKbs = parseInt(document.getElementById('speed-up-limit')?.value || '0', 10);
+  if (!hash) return;
+  e.target.disabled = true;
+  try {
+    const resp = await fetch('/api/torrent/set-speed-limit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hash, dl_limit: dlKbs * 1024, up_limit: upKbs * 1024 }),
+    });
+    const data = await resp.json();
+    if (data.ok) showToast(__('detail.limits_updated'), 'success');
+    else showToast(data.error || __('toast.failed'), 'danger');
+  } catch (err) {
+    showToast(__('toast.failed') + ' : ' + err.message, 'danger');
+  } finally {
+    e.target.disabled = false;
+  }
+});
+
+// ── Répertoire de sauvegarde modifiable ──────────────────────────────────────
+document.addEventListener('click', e => {
+  if (e.target.matches('#btn-edit-save-path')) {
+    document.getElementById('save-path-display').classList.add('d-none');
+    document.getElementById('save-path-edit').classList.remove('d-none');
+    document.getElementById('save-path-input')?.focus();
+    return;
+  }
+  if (e.target.matches('#btn-save-path-cancel')) {
+    document.getElementById('save-path-edit').classList.add('d-none');
+    document.getElementById('save-path-display').classList.remove('d-none');
+    return;
+  }
+});
+
+document.addEventListener('click', async e => {
+  if (!e.target.matches('#btn-save-path-ok')) return;
+  const input    = document.getElementById('save-path-input');
+  const hash     = input?.dataset.hash;
+  const location = input?.value.trim();
+  if (!hash || !location) return;
+  e.target.disabled = true;
+  try {
+    const resp = await fetch('/api/torrent/set-location', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hash, location }),
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      document.getElementById('save-path-display').textContent = location;
+      document.getElementById('save-path-edit').classList.add('d-none');
+      document.getElementById('save-path-display').classList.remove('d-none');
+      if (torrentDataMap[hash]) torrentDataMap[hash].save_path = location;
+      showToast(__('detail.save_path_updated'), 'success');
+    } else {
+      showToast(data.error || __('toast.failed'), 'danger');
+    }
+  } catch (err) {
+    showToast(__('toast.failed') + ' : ' + err.message, 'danger');
+  } finally {
+    e.target.disabled = false;
+  }
+});
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 initNotifications();

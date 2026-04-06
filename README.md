@@ -34,6 +34,9 @@ Une interface web Flask légère pour gérer une instance qBittorrent à distanc
 - **Colonne ETA** — temps estimé avant fin du téléchargement dans le tableau des torrents (triable)
 - **Page Catégories** — gestion complète des catégories : créer, renommer, changer le chemin, déplacer les torrents entre catégories, supprimer
 - **Page Logs** — logs qBittorrent en temps réel avec filtre par niveau (Normal / Info / Avertissement / Critique), pause et auto-scroll
+- **Limite de vitesse par torrent** — définir la vitesse max DL/UP directement depuis le panneau détail (0 = illimité)
+- **Répertoire de sauvegarde modifiable** — changer le dossier de destination d'un torrent depuis le panneau détail (qBittorrent déplace les fichiers automatiquement)
+- **Sécurité renforcée** — protection CSRF, cookies sécurisés (HttpOnly, SameSite), Content Security Policy, rate limiting sur le login et les opérations en masse, validation des entrées (hashes, chemins)
 
 ## Prérequis
 

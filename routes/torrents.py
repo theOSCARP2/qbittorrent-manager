@@ -61,10 +61,11 @@ def api_torrents():
 
     sort_key = _SORT_COLS.get(order_col, "name")
     reverse  = order_dir == "desc"
-    if sort_key == "name":
-        filtered = sorted(filtered, key=lambda t: t.get("name", "").lower(), reverse=reverse)
+    _STR_COLS = {"name", "category", "state"}
+    if sort_key in _STR_COLS:
+        filtered = sorted(filtered, key=lambda t: str(t.get(sort_key) or "").lower(), reverse=reverse)
     else:
-        filtered = sorted(filtered, key=lambda t: t.get(sort_key) or 0, reverse=reverse)
+        filtered = sorted(filtered, key=lambda t: t.get(sort_key) if isinstance(t.get(sort_key), (int, float)) else 0, reverse=reverse)
 
     page = filtered[start: start + length]
     return jsonify({
@@ -374,6 +375,56 @@ def api_torrent_set_file_priority():
         qb_request(session, "POST", "/api/v2/torrents/filePrio",
                    data={"hash": hash_, "id": str(file_id), "priority": str(priority)})
         log.debug("Priorité fichier %s[%s] → %s", hash_[:8], file_id, priority)
+        return jsonify({"ok": True})
+    except RuntimeError as exc:
+        return jsonify({"error": str(exc)}), 502
+
+
+@bp.route("/api/torrent/set-location", methods=["POST"])
+def api_torrent_set_location():
+    if not is_logged_in():
+        return jsonify({"error": "Not authenticated"}), 401
+    body     = request.get_json(force=True, silent=True) or {}
+    hash_    = body.get("hash", "").strip()
+    location = body.get("location", "").strip()
+    if not valid_hash(hash_):
+        return jsonify({"error": "Invalid hash"}), 400
+    if not location or not safe_path(location):
+        return jsonify({"error": "Invalid location"}), 400
+    try:
+        qb_request(session, "POST", "/api/v2/torrents/setLocation",
+                   data={"hashes": hash_, "location": location})
+        with _cache._lock:
+            for t in _cache._data:
+                if t.get("hash") == hash_:
+                    t["save_path"] = location
+                    break
+        log.info("Répertoire torrent %s → %s", hash_[:8], location)
+        return jsonify({"ok": True})
+    except RuntimeError as exc:
+        return jsonify({"error": str(exc)}), 502
+
+
+@bp.route("/api/torrent/set-speed-limit", methods=["POST"])
+def api_torrent_set_speed_limit():
+    if not is_logged_in():
+        return jsonify({"error": "Not authenticated"}), 401
+    body   = request.get_json(force=True, silent=True) or {}
+    hash_  = body.get("hash", "").strip()
+    dl     = body.get("dl_limit")
+    up     = body.get("up_limit")
+    if not valid_hash(hash_):
+        return jsonify({"error": "Invalid hash"}), 400
+    if dl is None and up is None:
+        return jsonify({"error": "Missing dl_limit or up_limit"}), 400
+    try:
+        if dl is not None:
+            qb_request(session, "POST", "/api/v2/torrents/setDownloadLimit",
+                       data={"hashes": hash_, "limit": str(int(dl))})
+        if up is not None:
+            qb_request(session, "POST", "/api/v2/torrents/setUploadLimit",
+                       data={"hashes": hash_, "limit": str(int(up))})
+        log.info("Limites vitesse %s → DL=%s UP=%s", hash_[:8], dl, up)
         return jsonify({"ok": True})
     except RuntimeError as exc:
         return jsonify({"error": str(exc)}), 502

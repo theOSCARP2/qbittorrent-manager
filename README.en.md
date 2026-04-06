@@ -34,6 +34,9 @@ A lightweight Flask web interface to manage a remote qBittorrent instance.
 - **ETA column** — estimated time remaining in the torrent table (sortable)
 - **Categories page** — full category management: create, rename, change save path, move torrents between categories, delete
 - **Logs page** — real-time qBittorrent logs with level filter (Normal / Info / Warning / Critical), pause and auto-scroll
+- **Per-torrent speed limits** — set max DL/UP speed directly from the detail panel (0 = unlimited)
+- **Editable save path** — change a torrent's destination folder from the detail panel (qBittorrent moves the files automatically)
+- **Security hardening** — CSRF protection, secure cookies (HttpOnly, SameSite), Content Security Policy, rate limiting on login and bulk operations, input validation (hashes, paths)
 
 ## Requirements
 

@@ -5,6 +5,14 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.23.0] - 2026-04-06
+
+### Ajouté
+- **Limite de vitesse par torrent** — section dans le panneau détail pour définir la vitesse max DL/UP en Ko/s (0 = illimité) ; appliqué via `POST /api/torrent/set-speed-limit`
+- **Répertoire de sauvegarde modifiable** — bouton "Modifier" dans le panneau détail pour changer le `save_path` d'un torrent sans quitter l'interface ; appliqué via `POST /api/torrent/set-location`
+
+---
+
 ## [1.22.0] - 2026-04-06
 
 ### Sécurité

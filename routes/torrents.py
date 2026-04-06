@@ -9,6 +9,7 @@ from flask import Blueprint, session, request, jsonify, send_file
 from core.qb_client import is_logged_in, qb_request
 from core.cache import _cache, _start_bg_fetch, CACHE_TTL
 from core.config import _SORT_COLS
+from core.validators import valid_hash, valid_hashes, safe_path
 
 bp  = Blueprint("torrents", __name__)
 log = logging.getLogger(__name__)
@@ -108,8 +109,8 @@ def api_torrent_set_category():
     body  = request.get_json(force=True, silent=True) or {}
     hash_ = body.get("hash", "").strip()
     cat   = body.get("category", "").strip()
-    if not hash_:
-        return jsonify({"error": "Missing hash"}), 400
+    if not valid_hash(hash_):
+        return jsonify({"error": "Invalid hash"}), 400
     try:
         qb_request(session, "POST", "/api/v2/torrents/setCategory",
                    data={"hashes": hash_, "category": cat})
@@ -207,6 +208,8 @@ def api_torrent_create():
 
             if not path_str:
                 return jsonify({"error": "Veuillez saisir un chemin."}), 400
+            if not safe_path(path_str):
+                return jsonify({"error": "Chemin invalide."}), 400
             if not os.path.exists(path_str):
                 return jsonify({"error": f"Chemin introuvable : {path_str}"}), 400
             torrent_input = path_str
@@ -258,8 +261,8 @@ def api_torrent_trackers():
     if not is_logged_in():
         return jsonify({"error": "Not authenticated"}), 401
     hash_ = request.args.get("hash", "").strip()
-    if not hash_:
-        return jsonify({"error": "Missing hash"}), 400
+    if not valid_hash(hash_):
+        return jsonify({"error": "Invalid hash"}), 400
     try:
         resp     = qb_request(session, "GET", f"/api/v2/torrents/trackers?hash={hash_}")
         trackers = [t for t in resp.json() if not t.get("url", "").startswith("** ")]
@@ -273,8 +276,8 @@ def api_torrent_files():
     if not is_logged_in():
         return jsonify({"error": "Not authenticated"}), 401
     hash_ = request.args.get("hash", "").strip()
-    if not hash_:
-        return jsonify({"error": "Missing hash"}), 400
+    if not valid_hash(hash_):
+        return jsonify({"error": "Invalid hash"}), 400
     try:
         resp = qb_request(session, "GET", f"/api/v2/torrents/files?hash={hash_}")
         return jsonify(resp.json())
@@ -287,8 +290,8 @@ def api_torrent_properties():
     if not is_logged_in():
         return jsonify({"error": "Not authenticated"}), 401
     hash_ = request.args.get("hash", "").strip()
-    if not hash_:
-        return jsonify({"error": "Missing hash"}), 400
+    if not valid_hash(hash_):
+        return jsonify({"error": "Invalid hash"}), 400
     try:
         resp = qb_request(session, "GET", f"/api/v2/torrents/properties?hash={hash_}")
         return jsonify(resp.json())
@@ -307,8 +310,8 @@ def api_torrent_action():
 
     if not action:
         return jsonify({"error": "Missing action"}), 400
-    if not hashes:
-        return jsonify({"error": "No torrents selected"}), 400
+    if not valid_hashes(hashes):
+        return jsonify({"error": "Invalid or missing hashes"}), 400
 
     hashes_str = "|".join(hashes)
     action_map = {

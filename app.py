@@ -1,6 +1,7 @@
 import logging
 from flask import Flask
 from core.config import _get_secret_key, APP_VERSION, GITHUB_REPO
+from core.extensions import csrf, limiter
 from routes import auth, pages, dashboard, torrents, trackers, categories, system
 
 # ---------------------------------------------------------------------------
@@ -19,7 +20,47 @@ log = logging.getLogger(__name__)
 app = Flask(__name__)
 app.secret_key = _get_secret_key()
 
+# ── Cookies de session sécurisés ────────────────────────────────────────────
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["WTF_CSRF_TIME_LIMIT"]     = 3600  # token CSRF valide 1h
 
+# ---------------------------------------------------------------------------
+# Extensions
+# ---------------------------------------------------------------------------
+csrf.init_app(app)
+limiter.init_app(app)
+
+# ---------------------------------------------------------------------------
+# Content Security Policy
+# ---------------------------------------------------------------------------
+_CSP = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline' "
+        "cdn.jsdelivr.net code.jquery.com cdn.datatables.net; "
+    "style-src 'self' 'unsafe-inline' "
+        "cdn.jsdelivr.net cdn.datatables.net; "
+    "font-src 'self' cdn.jsdelivr.net data:; "
+    "img-src 'self' data:; "
+    "connect-src 'self'; "
+    "frame-ancestors 'none'; "
+    "base-uri 'self'; "
+    "form-action 'self';"
+)
+
+
+@app.after_request
+def set_security_headers(response):
+    response.headers["Content-Security-Policy"] = _CSP
+    response.headers["X-Content-Type-Options"]  = "nosniff"
+    response.headers["X-Frame-Options"]          = "DENY"
+    response.headers["Referrer-Policy"]          = "strict-origin-when-cross-origin"
+    return response
+
+
+# ---------------------------------------------------------------------------
+# Context processors
+# ---------------------------------------------------------------------------
 @app.context_processor
 def inject_version():
     return {"app_version": APP_VERSION, "github_repo": GITHUB_REPO}

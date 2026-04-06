@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- Anti-flash: apply saved theme before CSS loads -->
   <script>(function(){var t=localStorage.getItem('qbm-theme')||'dark';document.documentElement.setAttribute('data-bs-theme',t);}());</script>
+  <!-- CSRF token -->
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>{% block title %}qBittorrent Manager{% endblock %}</title>
 
   <!-- Bootstrap 5 -->
@@ -15,11 +17,13 @@
 
   <!-- Bootstrap Icons -->
   <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+        crossorigin="anonymous" />
 
   <!-- DataTables + Bootstrap 5 theme -->
   <link rel="stylesheet"
-        href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" />
+        href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css"
+        crossorigin="anonymous" />
 
 
   <style>
@@ -288,10 +292,25 @@
         crossorigin="anonymous"></script>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"
         integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js" crossorigin="anonymous"></script>
 
 <script>
+// ── Intercepteur fetch : injection automatique du token CSRF ─────────────────
+(function () {
+  const _orig = window.fetch;
+  window.fetch = function (url, opts = {}) {
+    const method = (opts.method || 'GET').toUpperCase();
+    if (method !== 'GET' && method !== 'HEAD') {
+      const token = document.querySelector('meta[name="csrf-token"]')?.content;
+      if (token) {
+        opts.headers = Object.assign({}, opts.headers, { 'X-CSRFToken': token });
+      }
+    }
+    return _orig.call(this, url, opts);
+  };
+})();
+
 // ── i18n ─────────────────────────────────────────────────────────────────────
 const TRANSLATIONS = {
   fr: {

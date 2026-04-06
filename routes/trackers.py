@@ -1,6 +1,7 @@
 import logging
 from flask import Blueprint, session, request, jsonify
 from core.qb_client import is_logged_in, qb_request
+from core.extensions import limiter
 
 bp  = Blueprint("trackers", __name__)
 log = logging.getLogger(__name__)
@@ -49,6 +50,7 @@ def api_trackers():
 
 
 @bp.route("/api/tracker/bulk", methods=["POST"])
+@limiter.limit("30 per minute")
 def api_tracker_bulk():
     if not is_logged_in():
         return jsonify({"error": "Not authenticated"}), 401

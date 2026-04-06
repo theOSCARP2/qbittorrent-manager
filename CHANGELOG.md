@@ -5,6 +5,18 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.22.0] - 2026-04-06
+
+### Sécurité
+- **Protection CSRF** — token automatiquement injecté sur tous les appels AJAX POST via un intercepteur `fetch` global ; token inclus dans le formulaire de login
+- **Cookies de session sécurisés** — flags `HttpOnly` et `SameSite=Lax` activés
+- **Content Security Policy** — header CSP restreignant les sources de scripts, styles et connexions aux domaines connus ; headers `X-Frame-Options`, `X-Content-Type-Options` et `Referrer-Policy` ajoutés
+- **Rate limiting** — 10 tentatives/minute sur `/login`, 30 requêtes/minute sur les opérations bulk trackers (Flask-Limiter)
+- **Validation des entrées** — vérification du format des hashes torrent (40 hex), protection contre la traversée de répertoire sur les chemins serveur
+- **Attribut `crossorigin`** — ajouté sur tous les scripts et styles CDN externes
+
+---
+
 ## [1.21.1] - 2026-04-02
 
 ### Corrigé

@@ -6,6 +6,7 @@ from flask import (
 )
 from core.qb_client import is_logged_in, qb_request, _qb_sessions
 from core.cache import _cache, _start_bg_fetch
+from core.extensions import limiter
 
 bp  = Blueprint("auth", __name__)
 log = logging.getLogger(__name__)
@@ -19,6 +20,7 @@ def index():
 
 
 @bp.route("/login", methods=["GET", "POST"])
+@limiter.limit("10 per minute")
 def login():
     if request.method == "POST":
         qb_url   = request.form.get("qb_url", "").strip().rstrip("/")

@@ -5,6 +5,17 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.24.0] - 2026-04-06
+
+### Ajouté
+- **PWA (Progressive Web App)** — l'application est installable sur mobile et desktop comme une application native
+  - `manifest.json` : nom, icônes, thème, mode `standalone`
+  - Service worker : cache des assets statiques, network-first pour les pages et API
+  - Icônes 192×192 et 512×512 + apple-touch-icon (180×180) pour iOS
+  - `theme-color` pour la barre de statut mobile
+
+---
+
 ## [1.23.0] - 2026-04-06
 
 ### Ajouté

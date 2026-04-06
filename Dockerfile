@@ -11,6 +11,7 @@ COPY app.py .
 COPY core/ core/
 COPY routes/ routes/
 COPY templates/ templates/
+COPY static/ static/
 
 # Expose port
 EXPOSE 5000

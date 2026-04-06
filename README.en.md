@@ -37,6 +37,7 @@ A lightweight Flask web interface to manage a remote qBittorrent instance.
 - **Per-torrent speed limits** — set max DL/UP speed directly from the detail panel (0 = unlimited)
 - **Editable save path** — change a torrent's destination folder from the detail panel (qBittorrent moves the files automatically)
 - **Security hardening** — CSRF protection, secure cookies (HttpOnly, SameSite), Content Security Policy, rate limiting on login and bulk operations, input validation (hashes, paths)
+- **PWA** — installable on mobile and desktop as a native app (icons, manifest, service worker)
 
 ## Requirements
 

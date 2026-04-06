@@ -43,6 +43,7 @@ _CSP = (
     "font-src 'self' cdn.jsdelivr.net data:; "
     "img-src 'self' data:; "
     "connect-src 'self'; "
+    "worker-src 'self'; "
     "frame-ancestors 'none'; "
     "base-uri 'self'; "
     "form-action 'self';"

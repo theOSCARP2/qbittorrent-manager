@@ -5,6 +5,13 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.25.0] - 2026-07-31
+
+### Corrigé
+- **Compatibilité qBittorrent 5.x** — qBittorrent 5 renomme le cookie de session `SID` en `QBT_SID_{PORT}` ; le cookie est désormais détecté dynamiquement au login et propagé correctement dans toutes les requêtes suivantes
+
+---
+
 ## [1.24.0] - 2026-04-06
 
 ### Ajouté

@@ -38,6 +38,7 @@ A lightweight Flask web interface to manage a remote qBittorrent instance.
 - **Editable save path** — change a torrent's destination folder from the detail panel (qBittorrent moves the files automatically)
 - **Security hardening** — CSRF protection, secure cookies (HttpOnly, SameSite), Content Security Policy, rate limiting on login and bulk operations, input validation (hashes, paths)
 - **PWA** — installable on mobile and desktop as a native app (icons, manifest, service worker)
+- **qBittorrent 5.x compatibility** — support for the new session cookie name (`QBT_SID_*`) introduced in qBittorrent 5
 
 ## Requirements
 

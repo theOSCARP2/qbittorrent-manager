@@ -35,26 +35,33 @@ def login():
             resp = requests.post(
                 f"{qb_url}/api/v2/auth/login",
                 data={"username": username, "password": password},
+                headers={"Referer": qb_url, "Origin": qb_url},
                 timeout=15,
             )
             body = resp.text.strip()
-            if body == "Ok.":
-                sid = resp.cookies.get("SID")
-                if not sid:
-                    flash("Login succeeded but no SID cookie was returned.", "danger")
-                    return render_template("login.html")
-                session["qb_url"]      = qb_url
-                session["qb_sid"]      = sid
-                session["qb_username"] = username
+            raw_cookies = dict(resp.cookies)
+            sid_key = "SID" if "SID" in raw_cookies else next(
+                (k for k in raw_cookies if k.startswith("QBT_SID")), None
+            )
+            sid = raw_cookies.get(sid_key) if sid_key else None
+
+            if sid:
+                session["qb_url"]        = qb_url
+                session["qb_sid"]        = sid
+                session["qb_sid_cookie"] = sid_key
+                session["qb_username"]   = username
 
                 log.info("Connexion : %s @ %s", username or "(anonyme)", qb_url)
                 _cache.invalidate()
-                _start_bg_fetch({"qb_url": qb_url, "qb_sid": sid})
+                _start_bg_fetch({"qb_url": qb_url, "qb_sid": sid, "qb_sid_cookie": sid_key})
                 return redirect(url_for("pages.torrents"))
-            elif body == "Fails.":
+            elif body in ("Fails.", "fails"):
                 flash("Invalid username or password.", "danger")
+            elif resp.status_code == 403:
+                flash("qBittorrent refused the connection (403). Check your IP ban settings.", "danger")
             else:
-                flash(f"Unexpected response from qBittorrent: {body}", "warning")
+                log.warning("qBittorrent login: status=%s body=%r", resp.status_code, body)
+                flash("Invalid username or password.", "danger")
         except requests.exceptions.ConnectionError:
             flash(f"Cannot connect to {qb_url}. Check the URL and try again.", "danger")
         except requests.exceptions.Timeout:

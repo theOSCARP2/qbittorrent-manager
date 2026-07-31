@@ -1,6 +1,6 @@
 import logging
 from flask import Blueprint, session, redirect, url_for, render_template
-from core.qb_client import is_logged_in
+from core.qb_client import is_logged_in, session_snapshot
 from core.cache import _cache, _start_bg_fetch
 
 bp  = Blueprint("pages", __name__)
@@ -12,7 +12,7 @@ def dashboard():
     if not is_logged_in():
         return redirect(url_for("auth.login"))
     if not _cache.is_ready():
-        _start_bg_fetch({"qb_url": session["qb_url"], "qb_sid": session["qb_sid"]})
+        _start_bg_fetch(session_snapshot())
     return render_template("dashboard.html")
 
 
@@ -22,7 +22,7 @@ def torrents():
         return redirect(url_for("auth.login"))
     if not _cache.is_ready():
         log.debug("Cache vide, démarrage du préchauffage")
-        _start_bg_fetch({"qb_url": session["qb_url"], "qb_sid": session["qb_sid"]})
+        _start_bg_fetch(session_snapshot())
     return render_template("torrents.html")
 
 

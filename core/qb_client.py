@@ -10,16 +10,17 @@ _qb_sessions: dict[str, requests.Session] = {}
 
 
 def qb_request(session_data, method, endpoint, **kwargs):
-    sid      = session_data["qb_sid"]
-    base_url = session_data["qb_url"].rstrip("/")
-    url      = f"{base_url}{endpoint}"
+    sid        = session_data["qb_sid"]
+    sid_cookie = session_data.get("qb_sid_cookie", "SID")
+    base_url   = session_data["qb_url"].rstrip("/")
+    url        = f"{base_url}{endpoint}"
 
     if sid not in _qb_sessions:
         s = requests.Session()
-        s.cookies.set("SID", sid)
+        s.cookies.set(sid_cookie, sid)
         _qb_sessions[sid] = s
     else:
-        _qb_sessions[sid].cookies.set("SID", sid)
+        _qb_sessions[sid].cookies.set(sid_cookie, sid)
 
     try:
         t0   = time.monotonic()
@@ -38,3 +39,11 @@ def qb_request(session_data, method, endpoint, **kwargs):
 
 def is_logged_in() -> bool:
     return "qb_sid" in flask_session and "qb_url" in flask_session
+
+
+def session_snapshot() -> dict:
+    """Build a qb session dict from the current Flask session."""
+    snap = {"qb_url": flask_session["qb_url"], "qb_sid": flask_session["qb_sid"]}
+    if "qb_sid_cookie" in flask_session:
+        snap["qb_sid_cookie"] = flask_session["qb_sid_cookie"]
+    return snap

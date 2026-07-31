@@ -6,7 +6,7 @@ import logging
 import tempfile
 import threading
 from flask import Blueprint, session, request, jsonify, send_file
-from core.qb_client import is_logged_in, qb_request
+from core.qb_client import is_logged_in, qb_request, session_snapshot as _session_snapshot
 from core.cache import _cache, _start_bg_fetch, CACHE_TTL
 from core.config import _SORT_COLS
 from core.validators import valid_hash, valid_hashes, safe_path
@@ -27,7 +27,7 @@ def api_torrents():
     if not is_logged_in():
         return jsonify({"error": "Not authenticated"}), 401
 
-    session_snapshot = {"qb_url": session["qb_url"], "qb_sid": session["qb_sid"]}
+    session_snapshot = _session_snapshot()
 
     if not _cache.is_ready():
         log.debug("Cache vide, démarrage de la récupération")
@@ -151,7 +151,7 @@ def api_torrent_add():
             resp = qb_request(session, "POST", "/api/v2/torrents/add", data=form_data)
 
         if resp.text.strip() == "Ok.":
-            session_snapshot = {"qb_url": session["qb_url"], "qb_sid": session["qb_sid"]}
+            session_snapshot = _session_snapshot()
             _cache.invalidate()
             _start_bg_fetch(session_snapshot)
             return jsonify({"ok": True})
@@ -240,7 +240,7 @@ def api_torrent_create():
                                            torrent_bytes,
                                            "application/x-bittorrent")})
             _cache.invalidate()
-            _start_bg_fetch({"qb_url": session["qb_url"], "qb_sid": session["qb_sid"]})
+            _start_bg_fetch(_session_snapshot())
             log.info("Torrent créé et ajouté à qBittorrent : %s", torrent_name)
 
         return send_file(
@@ -348,7 +348,7 @@ def api_torrent_action():
                     if t.get("hash") in hash_set:
                         t["state"] = "checkingResumeData"
 
-        session_snapshot = {"qb_url": session["qb_url"], "qb_sid": session["qb_sid"]}
+        session_snapshot = _session_snapshot()
 
         def _delayed_refresh():
             time.sleep(3)

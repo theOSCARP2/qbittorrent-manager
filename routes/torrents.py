@@ -150,12 +150,23 @@ def api_torrent_add():
             form_data["urls"] = urls
             resp = qb_request(session, "POST", "/api/v2/torrents/add", data=form_data)
 
-        if resp.text.strip() == "Ok.":
-            session_snapshot = _session_snapshot()
-            _cache.invalidate()
-            _start_bg_fetch(session_snapshot)
-            return jsonify({"ok": True})
-        return jsonify({"error": resp.text.strip()}), 400
+        body = resp.text.strip()
+        try:
+            data = resp.json()
+            failures = data.get("failures", [])
+            if data.get("added_torrent_ids") or not failures:
+                session_snapshot = _session_snapshot()
+                _cache.invalidate()
+                _start_bg_fetch(session_snapshot)
+                return jsonify({"ok": True})
+            return jsonify({"error": "; ".join(str(f) for f in failures)}), 400
+        except Exception:
+            if body in ("Ok.", "Ok"):
+                session_snapshot = _session_snapshot()
+                _cache.invalidate()
+                _start_bg_fetch(session_snapshot)
+                return jsonify({"ok": True})
+            return jsonify({"error": body}), 400
     except RuntimeError as exc:
         return jsonify({"error": str(exc)}), 502
 

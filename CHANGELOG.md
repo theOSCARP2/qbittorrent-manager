@@ -5,6 +5,13 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.25.1] - 2026-08-02
+
+### Corrigé
+- **Ajout de torrent (qBittorrent 5.x)** — la réponse JSON `{"added_torrent_ids": [...]}` est désormais correctement interprétée comme un succès (qBittorrent 5 ne retourne plus `"Ok."`)
+
+---
+
 ## [1.25.0] - 2026-07-31
 
 ### Corrigé

@@ -39,6 +39,7 @@ Une interface web Flask légère pour gérer une instance qBittorrent à distanc
 - **Sécurité renforcée** — protection CSRF, cookies sécurisés (HttpOnly, SameSite), Content Security Policy, rate limiting sur le login et les opérations en masse, validation des entrées (hashes, chemins)
 - **PWA** — installable sur mobile et desktop comme une application native (icônes, manifest, service worker)
 - **Compatibilité qBittorrent 5.x** — support du nouveau nom de cookie de session (`QBT_SID_*`) introduit dans qBittorrent 5
+- **Colonne "Ajouté le"** — date d'ajout du torrent dans le tableau, triable (desktop uniquement)
 
 ## Prérequis
 

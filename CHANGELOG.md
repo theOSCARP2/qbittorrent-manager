@@ -5,6 +5,13 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.26.0] - 2026-08-15
+
+### Ajouté
+- **Colonne "Ajouté le"** — date d'ajout du torrent dans le tableau, triable, affichée sur desktop uniquement (masquée sur mobile et tablette)
+
+---
+
 ## [1.25.1] - 2026-08-02
 
 ### Corrigé

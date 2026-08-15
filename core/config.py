@@ -1,7 +1,7 @@
 import os
 import logging
 
-APP_VERSION       = "1.26.0"
+APP_VERSION       = "1.26.1"
 GITHUB_REPO       = "theOSCARP2/qbittorrent-manager"
 VERSION_CACHE_TTL = 3600  # 1 heure
 CACHE_TTL         = 30    # secondes

@@ -5,6 +5,13 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.26.1] - 2026-08-16
+
+### Corrigé
+- **Dashboard** — `UnboundLocalError` sur `/api/dashboard` causé par un conflit de nom entre la fonction importée `session_snapshot` et la variable locale du même nom
+
+---
+
 ## [1.26.0] - 2026-08-15
 
 ### Ajouté

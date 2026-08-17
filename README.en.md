@@ -6,8 +6,10 @@ A lightweight Flask web interface to manage a remote qBittorrent instance.
 
 ## Screenshots
 
+![Dashboard](docs/dashboard.png)
 ![Torrent list](docs/torrents.png)
 ![Tracker management](docs/trackers.png)
+![Categories](docs/categories.png)
 
 ## Features
 
@@ -40,6 +42,9 @@ A lightweight Flask web interface to manage a remote qBittorrent instance.
 - **PWA** — installable on mobile and desktop as a native app (icons, manifest, service worker)
 - **qBittorrent 5.x compatibility** — support for the new session cookie name (`QBT_SID_*`) introduced in qBittorrent 5
 - **"Added on" column** — torrent added date in the table, sortable (desktop only)
+- **Multi-file add** — select multiple `.torrent` files at once when adding
+- **Responsive UI** — icon-only sidebar on tablet, bottom navigation bar on mobile, detail panel as full-screen overlay on small screens
+- **Visual redesign** — sidebar layout, oklch design tokens, redesigned dashboard (speed chart + disk space + state breakdown side by side)
 
 ## Requirements
 

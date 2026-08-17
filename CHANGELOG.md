@@ -5,6 +5,18 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.27.0] - 2026-08-17
+
+### Ajouté
+- **Refonte graphique complète** — nouveau layout avec sidebar fixe, design tokens oklch, header bar avec vitesses DL/UP en temps réel
+- **Responsive mobile/tablette** — sidebar réduite à 72px (icônes uniquement) sur tablette, bottom nav sur mobile, panneau détail en overlay plein écran sur petit écran
+- **Dashboard redesigné** — stat cards en grid responsive, graphique de vitesse et espace disque côte à côte, répartition par catégorie en pleine largeur
+- **Toggle thème** — icône 🌙/☀️ dans le bouton jour/nuit ; bouton déplacé dans le header sur mobile
+- **Ajout multi-fichiers** — sélection de plusieurs fichiers `.torrent` simultanément lors de l'ajout
+- **Captures d'écran README** — dashboard, torrents, trackers et catégories
+
+---
+
 ## [1.26.1] - 2026-08-16
 
 ### Corrigé

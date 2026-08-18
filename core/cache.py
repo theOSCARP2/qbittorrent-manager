@@ -44,6 +44,34 @@ class _TorrentCache:
         with self._lock:
             self._refreshing = False
 
+    def update_torrent(self, hash_: str, **fields):
+        with self._lock:
+            for t in self._data:
+                if t.get("hash") == hash_:
+                    t.update(fields)
+                    break
+
+    def remove_torrents(self, hash_set: set):
+        with self._lock:
+            self._data = [t for t in self._data if t.get("hash") not in hash_set]
+
+    def apply_state_change(self, hash_set: set, action: str):
+        with self._lock:
+            for t in self._data:
+                if t.get("hash") not in hash_set:
+                    continue
+                if action == "pause":
+                    state = t.get("state", "")
+                    t["state"] = (
+                        "pausedDL"
+                        if state.endswith("DL") or state in ("downloading", "metaDL", "forcedDL")
+                        else "pausedUP"
+                    )
+                elif action == "resume":
+                    t["state"] = "downloading" if t.get("state") == "pausedDL" else "uploading"
+                elif action == "recheck":
+                    t["state"] = "checkingResumeData"
+
 
 _cache = _TorrentCache()
 

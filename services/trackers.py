@@ -1,24 +1,13 @@
 import logging
 
-from flask import Blueprint, jsonify, request, session
+from core.qb_client import qb_request
 
-from core.extensions import limiter
-from core.qb_client import is_logged_in, qb_request
-
-bp = Blueprint("trackers", __name__)
 log = logging.getLogger(__name__)
 
 
-@bp.route("/api/trackers")
-def api_trackers():
-    if not is_logged_in():
-        return jsonify({"error": "Not authenticated"}), 401
-    try:
-        torrents_list = qb_request(session, "GET", "/api/v2/torrents/info").json()
-    except RuntimeError as exc:
-        return jsonify({"error": str(exc)}), 502
-
-    tracker_map = {}
+def build_tracker_map(session) -> dict:
+    torrents_list = qb_request(session, "GET", "/api/v2/torrents/info").json()
+    tracker_map: dict = {}
     for torrent in torrents_list:
         t_hash = torrent.get("hash", "")
         t_info = {
@@ -49,33 +38,11 @@ def api_trackers():
                     tracker_map[url]["pending"] += 1
         except RuntimeError:
             continue
+    return tracker_map
 
-    return jsonify(tracker_map)
 
-
-@bp.route("/api/tracker/bulk", methods=["POST"])
-@limiter.limit("30 per minute")
-def api_tracker_bulk():
-    if not is_logged_in():
-        return jsonify({"error": "Not authenticated"}), 401
-
-    body = request.get_json(force=True, silent=True) or {}
-    operation = body.get("operation")
-    old_url = (body.get("old_url") or "").strip()
-    new_url = (body.get("new_url") or "").strip()
-
-    if operation not in ("replace", "add", "remove", "copy"):
-        return jsonify({"error": "Invalid operation"}), 400
-    if operation in ("replace", "remove", "copy") and not old_url:
-        return jsonify({"error": "old_url is required"}), 400
-    if operation in ("replace", "add", "copy") and not new_url:
-        return jsonify({"error": "new_url is required"}), 400
-
-    try:
-        torrents_list = qb_request(session, "GET", "/api/v2/torrents/info").json()
-    except RuntimeError as exc:
-        return jsonify({"error": str(exc)}), 502
-
+def bulk_operation(session, operation: str, old_url: str, new_url: str) -> dict:
+    torrents_list = qb_request(session, "GET", "/api/v2/torrents/info").json()
     success = 0
     failed = 0
     details = []
@@ -98,21 +65,7 @@ def api_tracker_bulk():
                 details.append({"name": t_name, "status": "error", "message": str(exc)})
 
     elif operation == "copy":
-        target_torrents = []
-        for torrent in torrents_list:
-            t_hash = torrent.get("hash", "")
-            t_name = torrent.get("name", t_hash)
-            try:
-                tr_urls = [
-                    t.get("url", "")
-                    for t in qb_request(
-                        session, "GET", f"/api/v2/torrents/trackers?hash={t_hash}"
-                    ).json()
-                ]
-                if old_url in tr_urls:
-                    target_torrents.append({"hash": t_hash, "name": t_name})
-            except RuntimeError:
-                continue
+        target_torrents = _find_torrents_with_tracker(session, torrents_list, old_url)
         for torrent in target_torrents:
             try:
                 qb_request(
@@ -128,21 +81,7 @@ def api_tracker_bulk():
                 details.append({"name": torrent["name"], "status": "error", "message": str(exc)})
 
     elif operation in ("replace", "remove"):
-        target_torrents = []
-        for torrent in torrents_list:
-            t_hash = torrent.get("hash", "")
-            t_name = torrent.get("name", t_hash)
-            try:
-                tr_urls = [
-                    t.get("url", "")
-                    for t in qb_request(
-                        session, "GET", f"/api/v2/torrents/trackers?hash={t_hash}"
-                    ).json()
-                ]
-                if old_url in tr_urls:
-                    target_torrents.append({"hash": t_hash, "name": t_name})
-            except RuntimeError:
-                continue
+        target_torrents = _find_torrents_with_tracker(session, torrents_list, old_url)
         for torrent in target_torrents:
             try:
                 if operation == "replace":
@@ -164,33 +103,12 @@ def api_tracker_bulk():
                 failed += 1
                 details.append({"name": torrent["name"], "status": "error", "message": str(exc)})
 
-    return jsonify(
-        {
-            "ok": True,
-            "operation": operation,
-            "success": success,
-            "failed": failed,
-            "details": details,
-        }
-    )
+    return {"ok": True, "operation": operation, "success": success, "failed": failed, "details": details}
 
 
-@bp.route("/api/tracker/delete-many", methods=["POST"])
-def api_tracker_delete_many():
-    if not is_logged_in():
-        return jsonify({"error": "Not authenticated"}), 401
-
-    body = request.get_json(force=True, silent=True) or {}
-    urls_to_remove = [u.strip() for u in (body.get("urls") or []) if u.strip()]
-    if not urls_to_remove:
-        return jsonify({"error": "No tracker URLs provided"}), 400
-
-    try:
-        torrents_list = qb_request(session, "GET", "/api/v2/torrents/info").json()
-    except RuntimeError as exc:
-        return jsonify({"error": str(exc)}), 502
-
-    url_set = set(urls_to_remove)
+def delete_many(session, urls: list[str]) -> dict:
+    torrents_list = qb_request(session, "GET", "/api/v2/torrents/info").json()
+    url_set = set(urls)
     targets: dict[str, list] = {u: [] for u in url_set}
 
     for torrent in torrents_list:
@@ -212,7 +130,6 @@ def api_tracker_delete_many():
     total_removed = 0
     failed = 0
     details = []
-
     for tracker_url, torrents in targets.items():
         ok_count = 0
         fail_count = 0
@@ -233,6 +150,23 @@ def api_tracker_delete_many():
             {"tracker": tracker_url, "torrents_ok": ok_count, "torrents_failed": fail_count}
         )
 
-    return jsonify(
-        {"ok": True, "total_removed": total_removed, "failed": failed, "details": details}
-    )
+    return {"ok": True, "total_removed": total_removed, "failed": failed, "details": details}
+
+
+def _find_torrents_with_tracker(session, torrents_list: list, tracker_url: str) -> list:
+    result = []
+    for torrent in torrents_list:
+        t_hash = torrent.get("hash", "")
+        t_name = torrent.get("name", t_hash)
+        try:
+            tr_urls = [
+                t.get("url", "")
+                for t in qb_request(
+                    session, "GET", f"/api/v2/torrents/trackers?hash={t_hash}"
+                ).json()
+            ]
+            if tracker_url in tr_urls:
+                result.append({"hash": t_hash, "name": t_name})
+        except RuntimeError:
+            continue
+    return result

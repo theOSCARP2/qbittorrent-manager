@@ -2,8 +2,10 @@ import logging
 
 from flask import Blueprint, jsonify
 
-from core.cache import CACHE_TTL, _cache, _start_bg_fetch
-from core.qb_client import is_logged_in, qb_request
+from core.cache import _cache, _start_bg_fetch
+from core.config import CACHE_TTL
+from core.extensions import require_auth
+from core.qb_client import qb_request
 from core.qb_client import session_snapshot as _session_snapshot
 
 bp = Blueprint("dashboard", __name__)
@@ -11,10 +13,8 @@ log = logging.getLogger(__name__)
 
 
 @bp.route("/api/dashboard")
+@require_auth
 def api_dashboard():
-    if not is_logged_in():
-        return jsonify({"error": "Not authenticated"}), 401
-
     session_snapshot = _session_snapshot()
     if _cache.age() > CACHE_TTL:
         _start_bg_fetch(session_snapshot)

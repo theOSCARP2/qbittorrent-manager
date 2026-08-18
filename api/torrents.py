@@ -8,28 +8,27 @@ import time
 
 from flask import Blueprint, jsonify, request, send_file, session
 
-from core.cache import CACHE_TTL, _cache, _start_bg_fetch
-from core.config import _SORT_COLS
-from core.qb_client import is_logged_in, qb_request
+from core.cache import _cache, _start_bg_fetch
+from core.config import CACHE_TTL
+from core.extensions import require_auth
+from core.qb_client import qb_request
 from core.qb_client import session_snapshot as _session_snapshot
 from core.validators import safe_path, valid_hash, valid_hashes
+from services import torrents as torrent_service
 
 bp = Blueprint("torrents", __name__)
 log = logging.getLogger(__name__)
 
 
 @bp.route("/api/torrents/status")
+@require_auth
 def api_torrents_status():
-    if not is_logged_in():
-        return jsonify({"error": "Not authenticated"}), 401
     return jsonify({"ready": _cache.is_ready(), "total": len(_cache.get())})
 
 
 @bp.route("/api/torrents")
+@require_auth
 def api_torrents():
-    if not is_logged_in():
-        return jsonify({"error": "Not authenticated"}), 401
-
     session_snapshot = _session_snapshot()
 
     if not _cache.is_ready():
@@ -45,69 +44,46 @@ def api_torrents():
         _start_bg_fetch(session_snapshot)
 
     data = _cache.get()
-
     draw = int(request.args.get("draw", 1))
     start = int(request.args.get("start", 0))
     length = int(request.args.get("length", 20))
-    search = request.args.get("search[value]", "").strip().lower()
-    order_col = int(request.args.get("order[0][column]", 1))
-    order_dir = request.args.get("order[0][dir]", "asc")
-    category_filter = request.args.get("category", "").strip()
-    state_filter = request.args.get("state", "").strip()
 
-    filtered = data
-    if search:
-        filtered = [t for t in filtered if search in t.get("name", "").lower()]
-    if category_filter:
-        filtered = [t for t in filtered if t.get("category", "") == category_filter]
-    if state_filter:
-        filtered = [t for t in filtered if t.get("state", "") == state_filter]
+    filtered = torrent_service.filter_and_sort(
+        data,
+        search=request.args.get("search[value]", "").strip().lower(),
+        category=request.args.get("category", "").strip(),
+        state=request.args.get("state", "").strip(),
+        order_col=int(request.args.get("order[0][column]", 1)),
+        order_dir=request.args.get("order[0][dir]", "asc"),
+    )
 
-    sort_key = _SORT_COLS.get(order_col, "name")
-    reverse = order_dir == "desc"
-    _STR_COLS = {"name", "category", "state"}
-    if sort_key in _STR_COLS:
-        filtered = sorted(
-            filtered, key=lambda t: str(t.get(sort_key) or "").lower(), reverse=reverse
-        )
-    else:
-        filtered = sorted(
-            filtered,
-            key=lambda t: t.get(sort_key) if isinstance(t.get(sort_key), (int, float)) else 0,
-            reverse=reverse,
-        )
-
-    page = filtered[start : start + length]
     return jsonify(
         {
             "draw": draw,
             "recordsTotal": len(data),
             "recordsFiltered": len(filtered),
-            "data": page,
+            "data": filtered[start : start + length],
         }
     )
 
 
 @bp.route("/api/torrents/states")
+@require_auth
 def api_torrents_states():
-    if not is_logged_in():
-        return jsonify({"error": "Not authenticated"}), 401
     states = sorted({t.get("state", "") for t in _cache.get() if t.get("state")})
     return jsonify(states)
 
 
 @bp.route("/api/torrents/categories")
+@require_auth
 def api_torrents_categories():
-    if not is_logged_in():
-        return jsonify({"error": "Not authenticated"}), 401
     cats = sorted({t.get("category", "") for t in _cache.get() if t.get("category")})
     return jsonify(cats)
 
 
 @bp.route("/api/qb/categories")
+@require_auth
 def api_qb_categories():
-    if not is_logged_in():
-        return jsonify({"error": "Not authenticated"}), 401
     try:
         resp = qb_request(session, "GET", "/api/v2/torrents/categories")
         return jsonify(sorted(resp.json().keys()))
@@ -116,9 +92,8 @@ def api_qb_categories():
 
 
 @bp.route("/api/torrent/set-category", methods=["POST"])
+@require_auth
 def api_torrent_set_category():
-    if not is_logged_in():
-        return jsonify({"error": "Not authenticated"}), 401
     body = request.get_json(force=True, silent=True) or {}
     hash_ = body.get("hash", "").strip()
     cat = body.get("category", "").strip()
@@ -128,21 +103,15 @@ def api_torrent_set_category():
         qb_request(
             session, "POST", "/api/v2/torrents/setCategory", data={"hashes": hash_, "category": cat}
         )
-        with _cache._lock:
-            for t in _cache._data:
-                if t.get("hash") == hash_:
-                    t["category"] = cat
-                    break
+        _cache.update_torrent(hash_, category=cat)
         return jsonify({"ok": True})
     except RuntimeError as exc:
         return jsonify({"error": str(exc)}), 502
 
 
 @bp.route("/api/torrent/add", methods=["POST"])
+@require_auth
 def api_torrent_add():
-    if not is_logged_in():
-        return jsonify({"error": "Not authenticated"}), 401
-
     savepath = request.form.get("savepath", "").strip()
     category = request.form.get("category", "").strip()
     paused = request.form.get("paused", "false")
@@ -174,16 +143,14 @@ def api_torrent_add():
             data = resp.json()
             failures = data.get("failures", [])
             if data.get("added_torrent_ids") or not failures:
-                session_snapshot = _session_snapshot()
                 _cache.invalidate()
-                _start_bg_fetch(session_snapshot)
+                _start_bg_fetch(_session_snapshot())
                 return jsonify({"ok": True})
             return jsonify({"error": "; ".join(str(f) for f in failures)}), 400
         except Exception:
             if body in ("Ok.", "Ok"):
-                session_snapshot = _session_snapshot()
                 _cache.invalidate()
-                _start_bg_fetch(session_snapshot)
+                _start_bg_fetch(_session_snapshot())
                 return jsonify({"ok": True})
             return jsonify({"error": body}), 400
     except RuntimeError as exc:
@@ -191,9 +158,8 @@ def api_torrent_add():
 
 
 @bp.route("/api/torrent/create", methods=["POST"])
+@require_auth
 def api_torrent_create():
-    if not is_logged_in():
-        return jsonify({"error": "Not authenticated"}), 401
     try:
         import torf
     except ImportError:
@@ -306,9 +272,8 @@ def api_torrent_create():
 
 
 @bp.route("/api/torrent/trackers")
+@require_auth
 def api_torrent_trackers():
-    if not is_logged_in():
-        return jsonify({"error": "Not authenticated"}), 401
     hash_ = request.args.get("hash", "").strip()
     if not valid_hash(hash_):
         return jsonify({"error": "Invalid hash"}), 400
@@ -321,9 +286,8 @@ def api_torrent_trackers():
 
 
 @bp.route("/api/torrent/files")
+@require_auth
 def api_torrent_files():
-    if not is_logged_in():
-        return jsonify({"error": "Not authenticated"}), 401
     hash_ = request.args.get("hash", "").strip()
     if not valid_hash(hash_):
         return jsonify({"error": "Invalid hash"}), 400
@@ -335,9 +299,8 @@ def api_torrent_files():
 
 
 @bp.route("/api/torrent/properties")
+@require_auth
 def api_torrent_properties():
-    if not is_logged_in():
-        return jsonify({"error": "Not authenticated"}), 401
     hash_ = request.args.get("hash", "").strip()
     if not valid_hash(hash_):
         return jsonify({"error": "Invalid hash"}), 400
@@ -349,10 +312,8 @@ def api_torrent_properties():
 
 
 @bp.route("/api/torrent/action", methods=["POST"])
+@require_auth
 def api_torrent_action():
-    if not is_logged_in():
-        return jsonify({"error": "Not authenticated"}), 401
-
     body = request.get_json(force=True, silent=True) or {}
     action = body.get("action")
     hashes = body.get("hashes", [])
@@ -362,44 +323,26 @@ def api_torrent_action():
     if not valid_hashes(hashes):
         return jsonify({"error": "Invalid or missing hashes"}), 400
 
-    hashes_str = "|".join(hashes)
     action_map = {
         "pause": "/api/v2/torrents/stop",
         "resume": "/api/v2/torrents/start",
         "recheck": "/api/v2/torrents/recheck",
         "delete": "/api/v2/torrents/delete",
     }
-
     if action not in action_map:
         return jsonify({"error": f"Unknown action: {action}"}), 400
 
-    data = {"hashes": hashes_str}
+    data = {"hashes": "|".join(hashes)}
     if action == "delete":
         data["deleteFiles"] = "true" if body.get("deleteFiles") else "false"
 
     try:
         qb_request(session, "POST", action_map[action], data=data)
         hash_set = set(hashes)
-        with _cache._lock:
-            if action == "delete":
-                _cache._data = [t for t in _cache._data if t.get("hash") not in hash_set]
-            elif action == "pause":
-                for t in _cache._data:
-                    if t.get("hash") in hash_set:
-                        t["state"] = (
-                            "pausedDL"
-                            if t.get("state", "").endswith("DL")
-                            or t.get("state") in ("downloading", "metaDL", "forcedDL")
-                            else "pausedUP"
-                        )
-            elif action == "resume":
-                for t in _cache._data:
-                    if t.get("hash") in hash_set:
-                        t["state"] = "downloading" if t.get("state") == "pausedDL" else "uploading"
-            elif action == "recheck":
-                for t in _cache._data:
-                    if t.get("hash") in hash_set:
-                        t["state"] = "checkingResumeData"
+        if action == "delete":
+            _cache.remove_torrents(hash_set)
+        else:
+            _cache.apply_state_change(hash_set, action)
 
         session_snapshot = _session_snapshot()
 
@@ -415,9 +358,8 @@ def api_torrent_action():
 
 
 @bp.route("/api/torrent/set-file-priority", methods=["POST"])
+@require_auth
 def api_torrent_set_file_priority():
-    if not is_logged_in():
-        return jsonify({"error": "Not authenticated"}), 401
     body = request.get_json(force=True, silent=True) or {}
     hash_ = body.get("hash", "").strip()
     file_id = body.get("id")
@@ -438,9 +380,8 @@ def api_torrent_set_file_priority():
 
 
 @bp.route("/api/torrent/set-location", methods=["POST"])
+@require_auth
 def api_torrent_set_location():
-    if not is_logged_in():
-        return jsonify({"error": "Not authenticated"}), 401
     body = request.get_json(force=True, silent=True) or {}
     hash_ = body.get("hash", "").strip()
     location = body.get("location", "").strip()
@@ -455,11 +396,7 @@ def api_torrent_set_location():
             "/api/v2/torrents/setLocation",
             data={"hashes": hash_, "location": location},
         )
-        with _cache._lock:
-            for t in _cache._data:
-                if t.get("hash") == hash_:
-                    t["save_path"] = location
-                    break
+        _cache.update_torrent(hash_, save_path=location)
         log.info("Répertoire torrent %s → %s", hash_[:8], location)
         return jsonify({"ok": True})
     except RuntimeError as exc:
@@ -467,9 +404,8 @@ def api_torrent_set_location():
 
 
 @bp.route("/api/torrent/set-speed-limit", methods=["POST"])
+@require_auth
 def api_torrent_set_speed_limit():
-    if not is_logged_in():
-        return jsonify({"error": "Not authenticated"}), 401
     body = request.get_json(force=True, silent=True) or {}
     hash_ = body.get("hash", "").strip()
     dl = body.get("dl_limit")

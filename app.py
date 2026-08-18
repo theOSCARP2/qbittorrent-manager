@@ -4,7 +4,7 @@ from flask import Flask
 
 from core.config import APP_VERSION, GITHUB_REPO, _get_secret_key
 from core.extensions import csrf, limiter
-from routes import auth, categories, dashboard, pages, system, torrents, trackers
+from api import auth, categories, dashboard, pages, system, torrents, trackers
 
 # ---------------------------------------------------------------------------
 # Logging

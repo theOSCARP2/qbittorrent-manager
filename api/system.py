@@ -5,7 +5,8 @@ import requests as _requests
 from flask import Blueprint, jsonify, request, session
 
 import core.config as _cfg
-from core.qb_client import is_logged_in, qb_request
+from core.extensions import require_auth
+from core.qb_client import qb_request
 
 bp = Blueprint("system", __name__)
 log = logging.getLogger(__name__)
@@ -41,18 +42,16 @@ def api_debug_status():
 
 
 @bp.route("/api/debug/toggle", methods=["POST"])
+@require_auth
 def api_debug_toggle():
-    if not is_logged_in():
-        return jsonify({"error": "Not authenticated"}), 401
     _cfg._set_debug(not _cfg._debug_mode)
     log.info("Mode debug %s", "activé" if _cfg._debug_mode else "désactivé")
     return jsonify({"debug": _cfg._debug_mode})
 
 
 @bp.route("/api/qb/logs")
+@require_auth
 def api_qb_logs():
-    if not is_logged_in():
-        return jsonify({"error": "Not authenticated"}), 401
     last_id = request.args.get("last_id", "-1")
     try:
         resp = qb_request(

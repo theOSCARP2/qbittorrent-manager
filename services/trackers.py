@@ -1,14 +1,19 @@
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from core.qb_client import qb_request
 
 log = logging.getLogger(__name__)
 
+_MAX_WORKERS = 16  # requêtes tracker concurrentes max vers qBittorrent
+
 
 def build_tracker_map(session) -> dict[str, dict]:
     torrents_list = qb_request(session, "GET", "/api/v2/torrents/info").json()
-    tracker_map: dict = {}
-    for torrent in torrents_list:
+    if not torrents_list:
+        return {}
+
+    def _fetch(torrent: dict) -> tuple[dict, list]:
         t_hash = torrent.get("hash", "")
         t_info = {
             "hash": t_hash,
@@ -20,9 +25,19 @@ def build_tracker_map(session) -> dict[str, dict]:
             "size": torrent.get("size", 0),
         }
         try:
-            for tracker in qb_request(
+            trackers = qb_request(
                 session, "GET", f"/api/v2/torrents/trackers?hash={t_hash}"
-            ).json():
+            ).json()
+        except RuntimeError:
+            trackers = []
+        return t_info, trackers
+
+    tracker_map: dict = {}
+    workers = min(_MAX_WORKERS, len(torrents_list))
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        for t_info, trackers in pool.map(_fetch, torrents_list):
+            for tracker in trackers:
                 url = tracker.get("url", "").strip()
                 if not url or url.startswith("** "):
                     continue
@@ -36,8 +51,8 @@ def build_tracker_map(session) -> dict[str, dict]:
                     tracker_map[url]["error"] += 1
                 else:
                     tracker_map[url]["pending"] += 1
-        except RuntimeError:
-            continue
+
+    log.debug("build_tracker_map : %d trackers, %d torrents", len(tracker_map), len(torrents_list))
     return tracker_map
 
 
@@ -109,23 +124,31 @@ def bulk_operation(session, operation: str, old_url: str, new_url: str) -> dict:
 def delete_many(session, urls: list[str]) -> dict:
     torrents_list = qb_request(session, "GET", "/api/v2/torrents/info").json()
     url_set = set(urls)
-    targets: dict[str, list] = {u: [] for u in url_set}
 
-    for torrent in torrents_list:
+    # Récupération parallèle des trackers de chaque torrent
+    def _fetch_targets(torrent: dict) -> list[tuple[str, str, str]]:
+        """Retourne [(tracker_url, t_hash, t_name)] pour ce torrent."""
         t_hash = torrent.get("hash", "")
         t_name = torrent.get("name", t_hash)
+        hits = []
         try:
-            torrent_tracker_urls = {
-                t.get("url", "")
-                for t in qb_request(
-                    session, "GET", f"/api/v2/torrents/trackers?hash={t_hash}"
-                ).json()
-            }
-            for u in url_set:
-                if u in torrent_tracker_urls:
-                    targets[u].append({"hash": t_hash, "name": t_name})
+            for t in qb_request(
+                session, "GET", f"/api/v2/torrents/trackers?hash={t_hash}"
+            ).json():
+                u = t.get("url", "")
+                if u in url_set:
+                    hits.append((u, t_hash, t_name))
         except RuntimeError:
-            continue
+            pass
+        return hits
+
+    # Agréger les cibles par URL de tracker
+    targets: dict[str, list] = {u: [] for u in url_set}
+    workers = min(_MAX_WORKERS, len(torrents_list))
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        for hits in pool.map(_fetch_targets, torrents_list):
+            for tracker_url, t_hash, t_name in hits:
+                targets[tracker_url].append({"hash": t_hash, "name": t_name})
 
     total_removed = 0
     failed = 0
@@ -154,10 +177,9 @@ def delete_many(session, urls: list[str]) -> dict:
 
 
 def _find_torrents_with_tracker(session, torrents_list: list, tracker_url: str) -> list:
-    result = []
-    for torrent in torrents_list:
+    """Retourne la liste des torrents possédant ce tracker — requêtes parallèles."""
+    def _check(torrent: dict) -> dict | None:
         t_hash = torrent.get("hash", "")
-        t_name = torrent.get("name", t_hash)
         try:
             tr_urls = [
                 t.get("url", "")
@@ -166,7 +188,15 @@ def _find_torrents_with_tracker(session, torrents_list: list, tracker_url: str) 
                 ).json()
             ]
             if tracker_url in tr_urls:
-                result.append({"hash": t_hash, "name": t_name})
+                return {"hash": t_hash, "name": torrent.get("name", t_hash)}
         except RuntimeError:
-            continue
-    return result
+            pass
+        return None
+
+    if not torrents_list:
+        return []
+
+    workers = min(_MAX_WORKERS, len(torrents_list))
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        results = list(pool.map(_check, torrents_list))
+    return [r for r in results if r is not None]

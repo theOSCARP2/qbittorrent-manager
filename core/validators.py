@@ -1,6 +1,6 @@
 import re
 
-_HASH_RE = re.compile(r'^[a-fA-F0-9]{40}$')
+_HASH_RE = re.compile(r"^[a-fA-F0-9]{40}$")
 
 
 def valid_hash(h: str) -> bool:

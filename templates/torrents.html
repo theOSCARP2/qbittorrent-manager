@@ -488,7 +488,8 @@ function initTable() {
       fetch('/api/torrents?' + params)
         .then(r => r.json())
         .then(json => {
-          document.getElementById('torrent-count').textContent = json.recordsTotal || 0;
+          const n = json.recordsTotal || 0;
+          document.getElementById('torrent-count').textContent = n + ' ' + __('torrents.count_label');
           if (json.loading) {
             schedulePoll();
             callback({ draw: json.draw, recordsTotal: 0, recordsFiltered: 0, data: [] });
@@ -612,7 +613,10 @@ function renderDetailPanel(t, props, files, trackers) {
 
   document.getElementById('detail-body').innerHTML = `
     <!-- Nom -->
-    <p class="fw-semibold mb-3" style="font-size:.9rem;word-break:break-word;">${escHtml(t.name || '—')}</p>
+    <div class="mb-3">
+      <div class="detail-label mb-1">${__('detail.field_name')}</div>
+      <p class="fw-semibold mb-0" style="font-size:.9rem;word-break:break-word;">${escHtml(t.name || '—')}</p>
+    </div>
 
     <!-- État + progression -->
     <div class="mb-3">

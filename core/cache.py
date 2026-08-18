@@ -1,8 +1,8 @@
-import time
-import threading
 import logging
+import threading
+import time
 
-from .config import CACHE_TTL, _TORRENT_FIELDS
+from .config import _TORRENT_FIELDS
 from .qb_client import qb_request
 
 log = logging.getLogger(__name__)
@@ -10,9 +10,9 @@ log = logging.getLogger(__name__)
 
 class _TorrentCache:
     def __init__(self):
-        self._lock       = threading.Lock()
+        self._lock = threading.Lock()
         self._data: list = []
-        self._ts: float  = 0.0
+        self._ts: float = 0.0
         self._refreshing = False
 
     def get(self) -> list:
@@ -26,8 +26,8 @@ class _TorrentCache:
 
     def set(self, data: list):
         with self._lock:
-            self._data       = data
-            self._ts         = time.monotonic()
+            self._data = data
+            self._ts = time.monotonic()
             self._refreshing = False
 
     def invalidate(self):
@@ -44,6 +44,34 @@ class _TorrentCache:
         with self._lock:
             self._refreshing = False
 
+    def update_torrent(self, hash_: str, **fields):
+        with self._lock:
+            for t in self._data:
+                if t.get("hash") == hash_:
+                    t.update(fields)
+                    break
+
+    def remove_torrents(self, hash_set: set):
+        with self._lock:
+            self._data = [t for t in self._data if t.get("hash") not in hash_set]
+
+    def apply_state_change(self, hash_set: set, action: str):
+        with self._lock:
+            for t in self._data:
+                if t.get("hash") not in hash_set:
+                    continue
+                if action == "pause":
+                    state = t.get("state", "")
+                    t["state"] = (
+                        "pausedDL"
+                        if state.endswith("DL") or state in ("downloading", "metaDL", "forcedDL")
+                        else "pausedUP"
+                    )
+                elif action == "resume":
+                    t["state"] = "downloading" if t.get("state") == "pausedDL" else "uploading"
+                elif action == "recheck":
+                    t["state"] = "checkingResumeData"
+
 
 _cache = _TorrentCache()
 
@@ -55,7 +83,7 @@ def _fetch_and_cache(session_snapshot: dict):
     try:
         resp = qb_request(session_snapshot, "GET", "/api/v2/torrents/info")
         log.debug("Réponse HTTP %s en %.2fs", resp.status_code, time.monotonic() - t0)
-        raw  = resp.json()
+        raw = resp.json()
         slim = [{k: t[k] for k in _TORRENT_FIELDS if k in t} for t in raw]
         _cache.set(slim)
         log.info("Cache actualisé — %d torrents (%.1fs)", len(slim), time.monotonic() - t0)

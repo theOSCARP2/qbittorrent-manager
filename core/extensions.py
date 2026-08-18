@@ -1,6 +1,12 @@
-from flask_wtf.csrf import CSRFProtect
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
+from fastapi import Depends, HTTPException, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
-csrf    = CSRFProtect()
-limiter = Limiter(key_func=get_remote_address, default_limits=[])
+limiter = Limiter(key_func=get_remote_address)
+
+
+def auth_required(request: Request) -> None:
+    from core.qb_client import is_logged_in
+
+    if not is_logged_in(request.session):
+        raise HTTPException(status_code=401, detail="Not authenticated")

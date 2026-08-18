@@ -9,7 +9,24 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installer les dépendances
+        run: pip install -r requirements.txt pytest httpx2
+
+      - name: Lancer les tests
+        run: pytest tests/ -v --tb=short
+
   build-windows:
+    needs: test
     name: Windows (.exe)
     runs-on: windows-latest
     steps:
@@ -30,7 +47,7 @@ jobs:
           --onefile
           --name qbittorrent-manager
           --add-data "templates;templates"
-          --hidden-import waitress
+          --hidden-import uvicorn
           app.py
 
       - name: Upload artifact
@@ -40,6 +57,7 @@ jobs:
           path: dist/qbittorrent-manager.exe
 
   build-linux:
+    needs: test
     name: Linux (binaire)
     runs-on: ubuntu-latest
     steps:
@@ -60,7 +78,7 @@ jobs:
           --onefile
           --name qbittorrent-manager-linux
           --add-data "templates:templates"
-          --hidden-import waitress
+          --hidden-import uvicorn
           app.py
 
       - name: Upload artifact
@@ -70,6 +88,7 @@ jobs:
           path: dist/qbittorrent-manager-linux
 
   build-macos-arm64:
+    needs: test
     name: macOS ARM64 (Apple Silicon)
     runs-on: macos-latest
     steps:
@@ -90,7 +109,7 @@ jobs:
           --onefile
           --name qbittorrent-manager-macos-arm64
           --add-data "templates:templates"
-          --hidden-import waitress
+          --hidden-import uvicorn
           app.py
 
       - name: Upload artifact
@@ -100,6 +119,7 @@ jobs:
           path: dist/qbittorrent-manager-macos-arm64
 
   build-macos-intel:
+    needs: test
     name: macOS Intel (x86_64 via Rosetta 2)
     runs-on: macos-latest
     steps:
@@ -120,7 +140,7 @@ jobs:
         run: |
           arch -x86_64 /Library/Frameworks/Python.framework/Versions/3.12/bin/python3.12 \
             -m PyInstaller --onefile --name qbittorrent-manager-macos-intel \
-            --add-data "templates:templates" --hidden-import waitress app.py
+            --add-data "templates:templates" --hidden-import uvicorn app.py
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -129,6 +149,7 @@ jobs:
           path: dist/qbittorrent-manager-macos-intel
 
   build-docker:
+    needs: test
     name: Docker (ghcr.io)
     runs-on: ubuntu-latest
     permissions:

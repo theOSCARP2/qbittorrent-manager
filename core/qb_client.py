@@ -2,11 +2,23 @@ import logging
 import time
 
 import requests
+from requests.adapters import HTTPAdapter
 
 log = logging.getLogger(__name__)
 
+_CONNECTION_POOL_SIZE = 32
+
 # Sessions requests persistées par SID qBittorrent
 _qb_sessions: dict[str, requests.Session] = {}
+
+
+def _make_session(sid_cookie: str, sid: str) -> requests.Session:
+    s = requests.Session()
+    s.cookies.set(sid_cookie, sid)
+    adapter = HTTPAdapter(pool_connections=1, pool_maxsize=_CONNECTION_POOL_SIZE)
+    s.mount("http://", adapter)
+    s.mount("https://", adapter)
+    return s
 
 
 def qb_request(session_data, method, endpoint, **kwargs):
@@ -16,11 +28,7 @@ def qb_request(session_data, method, endpoint, **kwargs):
     url = f"{base_url}{endpoint}"
 
     if sid not in _qb_sessions:
-        s = requests.Session()
-        s.cookies.set(sid_cookie, sid)
-        _qb_sessions[sid] = s
-    else:
-        _qb_sessions[sid].cookies.set(sid_cookie, sid)
+        _qb_sessions[sid] = _make_session(sid_cookie, sid)
 
     try:
         t0 = time.monotonic()

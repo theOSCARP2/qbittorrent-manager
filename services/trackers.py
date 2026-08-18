@@ -5,7 +5,7 @@ from core.qb_client import qb_request
 
 log = logging.getLogger(__name__)
 
-_MAX_WORKERS = 16  # requêtes tracker concurrentes max vers qBittorrent
+_MAX_WORKERS = 32  # requêtes tracker concurrentes max vers qBittorrent
 
 
 def build_tracker_map(session) -> dict[str, dict]:

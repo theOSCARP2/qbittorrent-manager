@@ -5,6 +5,26 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [2.0.0] - 2026-08-18
+
+### Refonte majeure
+- **Migration Flask → FastAPI** — remplacement complet de Flask/Waitress par FastAPI/uvicorn (ASGI)
+- **Restructuration `routes/` → `api/` + `services/`** — séparation claire entre handlers HTTP et logique métier
+- **Sessions Starlette** — `SessionMiddleware` (cookie signé via `itsdangerous`) en remplacement de la session Flask
+- **Rate limiting** — `slowapi` en remplacement de `Flask-Limiter`
+- **Schémas Pydantic** — modèles de réponse typés pour toutes les routes API (`schemas.py`)
+- **CSRF** — token via global Jinja2 `@pass_context`, stocké en session
+- **Flash messages** — système custom (`core/flash.py`) compatible Starlette
+
+### Performance
+- **Trackers parallélisés** — récupération des trackers via `ThreadPoolExecutor(32 workers)` + pool de connexions urllib3 aligné ; ~5 s → ~150 ms sur 100 torrents (×32)
+
+### Tests
+- **Suite de 93 tests** — validators, cache, services torrents, intégration API (pytest + httpx2)
+- **CI GitHub Actions** — nouveau workflow `test.yml` (push/PR, Python 3.10/3.11/3.12) ; `build.yml` bloqué tant que les tests ne passent pas
+
+---
+
 ## [1.27.0] - 2026-08-17
 
 ### Ajouté

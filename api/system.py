@@ -7,12 +7,13 @@ from fastapi import APIRouter, Depends, Request
 
 import core.config as _cfg
 from core.extensions import auth_required
+from schemas import DebugResponse, VersionResponse
 
 router = APIRouter()
 log = logging.getLogger(__name__)
 
 
-@router.get("/api/version/check")
+@router.get("/api/version/check", response_model=VersionResponse)
 def api_version_check():
     now = time.monotonic()
     if _cfg._version_cache["latest"] and now - _cfg._version_cache["ts"] < _cfg.VERSION_CACHE_TTL:
@@ -38,12 +39,12 @@ def api_version_check():
     return {"current": _cfg.APP_VERSION, "latest": latest, "up_to_date": up_to_date}
 
 
-@router.get("/api/debug/status")
+@router.get("/api/debug/status", response_model=DebugResponse)
 def api_debug_status():
     return {"debug": _cfg._debug_mode}
 
 
-@router.post("/api/debug/toggle", dependencies=[Depends(auth_required)])
+@router.post("/api/debug/toggle", dependencies=[Depends(auth_required)], response_model=DebugResponse)
 def api_debug_toggle():
     _cfg._set_debug(not _cfg._debug_mode)
     log.info("Mode debug %s", "activé" if _cfg._debug_mode else "désactivé")

@@ -19,7 +19,7 @@
     <!-- Card -->
     <div class="card shadow-lg">
       <div class="card-body p-4">
-        <form method="POST" action="{{ url_for('auth.login') }}" novalidate>
+        <form method="POST" action="{{ '/login' }}" novalidate>
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
           <!-- Server URL -->
@@ -31,7 +31,7 @@
                    class="form-control"
                    id="qb_url" name="qb_url"
                    placeholder="http://localhost:8080"
-                   value="{{ request.form.get('qb_url', '') }}"
+                   value="{{ form_qb_url|default('') }}"
                    required autofocus />
             <div class="form-text text-secondary">
               <span data-i18n="login.server_hint"></span> <code>http://192.168.1.10:8080</code>
@@ -47,7 +47,7 @@
                    class="form-control"
                    id="username" name="username"
                    placeholder="admin"
-                   value="{{ request.form.get('username', '') }}" />
+                   value="{{ form_username|default('') }}" />
           </div>
 
           <!-- Password -->

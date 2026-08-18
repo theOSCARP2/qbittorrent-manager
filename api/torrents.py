@@ -16,6 +16,7 @@ from core.config import CACHE_TTL
 from core.extensions import auth_required
 from core.qb_client import qb_request, session_snapshot
 from core.validators import safe_path, valid_hash, valid_hashes
+from schemas import ActionResult, OkResponse, StatusResponse, TorrentsResponse
 from services import torrents as torrent_service
 
 router = APIRouter(dependencies=[Depends(auth_required)])
@@ -50,12 +51,12 @@ class SetSpeedLimitBody(BaseModel):
     up_limit: Optional[int] = None
 
 
-@router.get("/api/torrents/status")
+@router.get("/api/torrents/status", response_model=StatusResponse)
 def api_torrents_status():
     return {"ready": _cache.is_ready(), "total": len(_cache.get())}
 
 
-@router.get("/api/torrents")
+@router.get("/api/torrents", response_model=TorrentsResponse)
 def api_torrents(
     request: Request,
     draw: int = 1,
@@ -346,7 +347,7 @@ def api_torrent_properties(request: Request, hash: str = ""):
         return JSONResponse({"error": str(exc)}, status_code=502)
 
 
-@router.post("/api/torrent/action")
+@router.post("/api/torrent/action", response_model=ActionResult)
 def api_torrent_action(request: Request, body: ActionBody):
     action = body.action
     hashes = body.hashes

@@ -5,7 +5,7 @@ from core.qb_client import qb_request
 log = logging.getLogger(__name__)
 
 
-def build_tracker_map(session) -> dict:
+def build_tracker_map(session) -> dict[str, dict]:
     torrents_list = qb_request(session, "GET", "/api/v2/torrents/info").json()
     tracker_map: dict = {}
     for torrent in torrents_list:

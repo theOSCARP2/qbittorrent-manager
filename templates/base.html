@@ -464,25 +464,25 @@
     </div>
   </div>
 
-  {% if session.get('qb_sid') %}
+  {% if request.session.get('qb_sid') %}
   <nav class="sidebar-nav">
-    <a href="{{ url_for('pages.dashboard') }}"
+    <a href="{{ '/dashboard' }}"
        class="{% if request.endpoint == 'pages.dashboard' %}active{% endif %}">
       <span class="nav-dot"></span><i class="bi bi-speedometer2"></i><span class="nav-label">Dashboard</span>
     </a>
-    <a href="{{ url_for('pages.torrents') }}"
+    <a href="{{ '/torrents' }}"
        class="{% if request.endpoint == 'pages.torrents' %}active{% endif %}">
       <span class="nav-dot"></span><i class="bi bi-arrow-down-circle"></i><span class="nav-label">Torrents</span>
     </a>
-    <a href="{{ url_for('pages.trackers') }}"
+    <a href="{{ '/trackers' }}"
        class="{% if request.endpoint == 'pages.trackers' %}active{% endif %}">
       <span class="nav-dot"></span><i class="bi bi-broadcast"></i><span class="nav-label">Trackers</span>
     </a>
-    <a href="{{ url_for('pages.categories') }}"
+    <a href="{{ '/categories' }}"
        class="{% if request.endpoint == 'pages.categories' %}active{% endif %}">
       <span class="nav-dot"></span><i class="bi bi-tag"></i><span class="nav-label" data-i18n="nav.categories"></span>
     </a>
-    <a href="{{ url_for('pages.logs') }}"
+    <a href="{{ '/logs' }}"
        class="{% if request.endpoint == 'pages.logs' %}active{% endif %}">
       <span class="nav-dot"></span><i class="bi bi-terminal"></i><span class="nav-label" data-i18n="nav.logs"></span>
     </a>
@@ -498,13 +498,13 @@
     <button class="sidebar-action-btn" id="btn-debug" title="Mode debug">
       <i class="bi bi-bug"></i><span>Debug</span>
     </button>
-    {% if session.get('qb_username') %}
+    {% if request.session.get('qb_username') %}
     <div class="sidebar-action-btn" style="cursor:default;">
       <i class="bi bi-person-circle"></i>
-      <span style="color:var(--text-muted);">{{ session.get('qb_username') }}</span>
+      <span style="color:var(--text-muted);">{{ request.session.get('qb_username') }}</span>
     </div>
     {% endif %}
-    <a href="{{ url_for('auth.logout') }}" class="sidebar-action-btn" style="color:var(--danger);">
+    <a href="{{ '/logout' }}" class="sidebar-action-btn" style="color:var(--danger);">
       <i class="bi bi-box-arrow-right"></i><span data-i18n="nav.logout"></span>
     </a>
   </div>
@@ -530,7 +530,7 @@
   <div id="header-bar">
     <div id="page-title">{% block page_title %}qBittorrent Manager{% endblock %}</div>
     <div class="flex-grow-1"></div>
-    {% if session.get('qb_sid') %}
+    {% if request.session.get('qb_sid') %}
     <div class="speed-pill">
       <span class="speed-dot" style="background:var(--dl-color);"></span>
       <span class="speed-arrow">↓</span>
@@ -568,26 +568,26 @@
 
 </div><!-- #layout-row -->
 
-{% if session.get('qb_sid') %}
+{% if request.session.get('qb_sid') %}
 <!-- ===== Bottom nav (mobile) ===== -->
 <nav id="bottom-nav">
-  <a href="{{ url_for('pages.dashboard') }}"
+  <a href="{{ '/dashboard' }}"
      class="{% if request.endpoint == 'pages.dashboard' %}active{% endif %}">
     <i class="bi bi-speedometer2"></i><span>Dashboard</span>
   </a>
-  <a href="{{ url_for('pages.torrents') }}"
+  <a href="{{ '/torrents' }}"
      class="{% if request.endpoint == 'pages.torrents' %}active{% endif %}">
     <i class="bi bi-arrow-down-circle"></i><span>Torrents</span>
   </a>
-  <a href="{{ url_for('pages.trackers') }}"
+  <a href="{{ '/trackers' }}"
      class="{% if request.endpoint == 'pages.trackers' %}active{% endif %}">
     <i class="bi bi-broadcast"></i><span>Trackers</span>
   </a>
-  <a href="{{ url_for('pages.categories') }}"
+  <a href="{{ '/categories' }}"
      class="{% if request.endpoint == 'pages.categories' %}active{% endif %}">
     <i class="bi bi-tag"></i><span data-i18n="nav.categories"></span>
   </a>
-  <a href="{{ url_for('pages.logs') }}"
+  <a href="{{ '/logs' }}"
      class="{% if request.endpoint == 'pages.logs' %}active{% endif %}">
     <i class="bi bi-terminal"></i><span data-i18n="nav.logs"></span>
   </a>

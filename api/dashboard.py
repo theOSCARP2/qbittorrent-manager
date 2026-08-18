@@ -7,12 +7,13 @@ from core.cache import _cache, _start_bg_fetch
 from core.config import CACHE_TTL
 from core.extensions import auth_required
 from core.qb_client import qb_request, session_snapshot
+from schemas import DashboardResponse
 
 router = APIRouter(dependencies=[Depends(auth_required)])
 log = logging.getLogger(__name__)
 
 
-@router.get("/api/dashboard")
+@router.get("/api/dashboard", response_model=DashboardResponse)
 def api_dashboard(request: Request):
     snap = session_snapshot(request.session)
     if _cache.age() > CACHE_TTL:

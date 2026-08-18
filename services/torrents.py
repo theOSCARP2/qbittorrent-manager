@@ -4,16 +4,17 @@ _STR_COLS = {"name", "category", "state"}
 
 
 def filter_and_sort(
-    data: list,
+    data: list[dict],
     search: str = "",
     category: str = "",
     state: str = "",
     order_col: int = 1,
     order_dir: str = "asc",
-) -> list:
+) -> list[dict]:
     result = data
     if search:
-        result = [t for t in result if search in t.get("name", "").lower()]
+        needle = search.lower()
+        result = [t for t in result if needle in t.get("name", "").lower()]
     if category:
         result = [t for t in result if t.get("category", "") == category]
     if state:

@@ -26,9 +26,7 @@ def index(request: Request):
 def login_get(request: Request):
     if is_logged_in(request.session):
         return RedirectResponse("/torrents", status_code=302)
-    return templates.TemplateResponse(
-        "login.html", {"request": request, "flashes": pop_flashes(request)}
-    )
+    return templates.TemplateResponse(request, "login.html", {"flashes": pop_flashes(request)})
 
 
 @router.post("/login")
@@ -51,7 +49,9 @@ async def login_post(
     if not qb_url:
         flash(request, "Server URL is required.", "danger")
         return templates.TemplateResponse(
-            "login.html", {"request": request, "flashes": pop_flashes(request)}, status_code=422
+            request, "login.html",
+            {"flashes": pop_flashes(request), "form_qb_url": qb_url, "form_username": username},
+            status_code=422,
         )
 
     try:
@@ -98,7 +98,9 @@ async def login_post(
         flash(request, "Connection timed out.", "danger")
 
     return templates.TemplateResponse(
-        "login.html", {"request": request, "flashes": pop_flashes(request)}, status_code=422
+        request, "login.html",
+        {"flashes": pop_flashes(request), "form_qb_url": qb_url, "form_username": username},
+        status_code=422,
     )
 
 

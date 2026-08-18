@@ -1,4 +1,5 @@
 import logging
+import os
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -28,7 +29,7 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 app = FastAPI(title="qBittorrent Manager", version=APP_VERSION, docs_url=None, redoc_url=None)
 
-# ── Session (signed cookie — équivalent à Flask session) ────────────────────
+# ── Session (signed cookie via Starlette SessionMiddleware) ─────────────────
 app.add_middleware(
     SessionMiddleware,
     secret_key=_get_secret_key(),
@@ -94,7 +95,8 @@ if __name__ == "__main__":
 
     log.info("━" * 42)
     log.info("  qBittorrent Manager v%s", APP_VERSION)
-    log.info("  http://localhost:5000")
+    port = int(os.environ.get("PORT", 5000))
+    log.info("  http://localhost:%s", port)
     log.info("  Framework : FastAPI + Uvicorn")
     log.info("━" * 42)
-    uvicorn.run("app:app", host="0.0.0.0", port=5000, workers=1, log_level="info")
+    uvicorn.run("app:app", host="0.0.0.0", port=port, workers=1, log_level="info")

@@ -1,6 +1,6 @@
 # qBittorrent Manager
 
-A lightweight Flask web interface to manage a remote qBittorrent instance.
+A lightweight FastAPI web interface to manage a remote qBittorrent instance.
 
 > 🇫🇷 [Version française](README.md)
 
@@ -117,8 +117,9 @@ On first launch, a unique secret key is automatically generated and saved to `~/
 | Environment variable | Description |
 |---|---|
 | `SECRET_KEY` | Overrides the auto-generated key (server, Docker, etc.) |
+| `PORT` | Listening port (default: `5000`) |
 
-The application uses **Waitress** as the production WSGI server (no Flask development warning).
+The application uses **uvicorn** (via FastAPI) as the ASGI server.
 
 ## Credits
 
@@ -127,4 +128,5 @@ Developed with the help of [Claude](https://claude.ai) (Anthropic).
 ## Notes
 
 - Compatible with qBittorrent v5+ (`/api/v2/torrents/stop` and `start` endpoints, `stoppedUP`/`stoppedDL` states replacing `pausedUP`/`pausedDL`)
-- The application stores no credentials — the qBittorrent SID cookie is kept only in the Flask session
+- The application stores no credentials — the qBittorrent SID cookie is kept only in the encrypted session (signed cookie via `itsdangerous`)
+- **Performance** — the Trackers view fires all HTTP requests to qBittorrent in parallel (32 workers + aligned urllib3 connection pool); on 100 torrents, load time drops from ~5 s to ~150 ms (×32)

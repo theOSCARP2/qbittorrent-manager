@@ -5,6 +5,7 @@ import time
 import pytest
 
 from core.cache import _TorrentCache
+from core.config import CACHE_TTL
 
 
 @pytest.fixture
@@ -37,9 +38,11 @@ class TestBasicOperations:
         assert age2 > age1
 
     def test_invalidate_resets_age(self, cache):
+        cache.set([{"hash": "a" * 40}])
+        age_before = cache.age()
         cache.invalidate()
-        # After invalidate, age() is very large (monotonic since epoch ~= far in past)
-        assert cache.age() > 1000
+        # After invalidate, _ts=0.0 so age() >> age before invalidate
+        assert cache.age() > age_before + CACHE_TTL
 
     def test_start_refresh_returns_true_first(self, cache):
         assert cache.start_refresh() is True

@@ -25,7 +25,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Installer les dépendances
-        run: pip install -r requirements.txt pytest
+        run: pip install -r requirements.txt pytest httpx2
 
       - name: Lancer les tests
         run: pytest tests/ -v --tb=short

@@ -1,28 +1,27 @@
 import logging
 
-from flask import Blueprint, jsonify
+from fastapi import APIRouter, Depends, Request
+from fastapi.responses import JSONResponse
 
 from core.cache import _cache, _start_bg_fetch
 from core.config import CACHE_TTL
-from core.extensions import require_auth
-from core.qb_client import qb_request
-from core.qb_client import session_snapshot as _session_snapshot
+from core.extensions import auth_required
+from core.qb_client import qb_request, session_snapshot
 
-bp = Blueprint("dashboard", __name__)
+router = APIRouter(dependencies=[Depends(auth_required)])
 log = logging.getLogger(__name__)
 
 
-@bp.route("/api/dashboard")
-@require_auth
-def api_dashboard():
-    session_snapshot = _session_snapshot()
+@router.get("/api/dashboard")
+def api_dashboard(request: Request):
+    snap = session_snapshot(request.session)
     if _cache.age() > CACHE_TTL:
-        _start_bg_fetch(session_snapshot)
+        _start_bg_fetch(snap)
 
     data = _cache.get()
-    by_state = {}
-    by_category = {}
-    size_by_category = {}
+    by_state: dict = {}
+    by_category: dict = {}
+    size_by_category: dict = {}
     total_dl = total_up = total_size = 0
 
     for t in data:
@@ -37,21 +36,19 @@ def api_dashboard():
 
     free_space = None
     try:
-        resp = qb_request(session_snapshot, "GET", "/api/v2/sync/maindata")
+        resp = qb_request(snap, "GET", "/api/v2/sync/maindata")
         free_space = resp.json().get("server_state", {}).get("free_space_on_disk")
     except Exception:
         pass
 
-    return jsonify(
-        {
-            "total": len(data),
-            "dl_speed": total_dl,
-            "up_speed": total_up,
-            "total_size": total_size,
-            "free_space": free_space,
-            "by_state": by_state,
-            "by_category": by_category,
-            "size_by_category": size_by_category,
-            "ready": _cache.is_ready(),
-        }
-    )
+    return {
+        "total": len(data),
+        "dl_speed": total_dl,
+        "up_speed": total_up,
+        "total_size": total_size,
+        "free_space": free_space,
+        "by_state": by_state,
+        "by_category": by_category,
+        "size_by_category": size_by_category,
+        "ready": _cache.is_ready(),
+    }

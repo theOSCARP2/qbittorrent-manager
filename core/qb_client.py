@@ -2,7 +2,6 @@ import logging
 import time
 
 import requests
-from flask import session as flask_session
 
 log = logging.getLogger(__name__)
 
@@ -40,13 +39,12 @@ def qb_request(session_data, method, endpoint, **kwargs):
         raise RuntimeError(f"qBittorrent returned an error: {exc}") from exc
 
 
-def is_logged_in() -> bool:
-    return "qb_sid" in flask_session and "qb_url" in flask_session
+def is_logged_in(session_data: dict) -> bool:
+    return "qb_sid" in session_data and "qb_url" in session_data
 
 
-def session_snapshot() -> dict:
-    """Build a qb session dict from the current Flask session."""
-    snap = {"qb_url": flask_session["qb_url"], "qb_sid": flask_session["qb_sid"]}
-    if "qb_sid_cookie" in flask_session:
-        snap["qb_sid_cookie"] = flask_session["qb_sid_cookie"]
+def session_snapshot(session_data: dict) -> dict:
+    snap = {"qb_url": session_data["qb_url"], "qb_sid": session_data["qb_sid"]}
+    if "qb_sid_cookie" in session_data:
+        snap["qb_sid_cookie"] = session_data["qb_sid_cookie"]
     return snap

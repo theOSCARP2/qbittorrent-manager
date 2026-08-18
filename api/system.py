@@ -1,18 +1,18 @@
 import logging
 import time
+from typing import Optional
 
 import requests as _requests
-from flask import Blueprint, jsonify, request, session
+from fastapi import APIRouter, Depends, Request
 
 import core.config as _cfg
-from core.extensions import require_auth
-from core.qb_client import qb_request
+from core.extensions import auth_required
 
-bp = Blueprint("system", __name__)
+router = APIRouter()
 log = logging.getLogger(__name__)
 
 
-@bp.route("/api/version/check")
+@router.get("/api/version/check")
 def api_version_check():
     now = time.monotonic()
     if _cfg._version_cache["latest"] and now - _cfg._version_cache["ts"] < _cfg.VERSION_CACHE_TTL:
@@ -28,37 +28,39 @@ def api_version_check():
             _cfg._version_cache["latest"] = latest
             _cfg._version_cache["ts"] = now
         except Exception:
-            return jsonify({"error": "unavailable"}), 503
+            from fastapi.responses import JSONResponse
+
+            return JSONResponse({"error": "unavailable"}, status_code=503)
 
     up_to_date = (
         _cfg._version_tuple(_cfg.APP_VERSION) >= _cfg._version_tuple(latest) if latest else True
     )
-    return jsonify({"current": _cfg.APP_VERSION, "latest": latest, "up_to_date": up_to_date})
+    return {"current": _cfg.APP_VERSION, "latest": latest, "up_to_date": up_to_date}
 
 
-@bp.route("/api/debug/status")
+@router.get("/api/debug/status")
 def api_debug_status():
-    return jsonify({"debug": _cfg._debug_mode})
+    return {"debug": _cfg._debug_mode}
 
 
-@bp.route("/api/debug/toggle", methods=["POST"])
-@require_auth
+@router.post("/api/debug/toggle", dependencies=[Depends(auth_required)])
 def api_debug_toggle():
     _cfg._set_debug(not _cfg._debug_mode)
     log.info("Mode debug %s", "activé" if _cfg._debug_mode else "désactivé")
-    return jsonify({"debug": _cfg._debug_mode})
+    return {"debug": _cfg._debug_mode}
 
 
-@bp.route("/api/qb/logs")
-@require_auth
-def api_qb_logs():
-    last_id = request.args.get("last_id", "-1")
+@router.get("/api/qb/logs", dependencies=[Depends(auth_required)])
+def api_qb_logs(request: Request, last_id: str = "-1"):
+    from core.qb_client import qb_request
+    from fastapi.responses import JSONResponse
+
     try:
         resp = qb_request(
-            session,
+            request.session,
             "GET",
             f"/api/v2/log/main?last_known_id={last_id}&normal=true&info=true&warning=true&critical=true",
         )
-        return jsonify(resp.json())
+        return resp.json()
     except RuntimeError as exc:
-        return jsonify({"error": str(exc)}), 502
+        return JSONResponse({"error": str(exc)}, status_code=502)

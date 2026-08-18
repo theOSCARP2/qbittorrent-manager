@@ -549,18 +549,16 @@
   </div>
 
   <!-- Flash messages -->
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    <div class="flash-zone">
-      {% for category, message in messages %}
-      <div class="alert alert-{{ category }} alert-dismissible fade show mb-2" role="alert">
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-      </div>
-      {% endfor %}
+  {% if flashes %}
+  <div class="flash-zone">
+    {% for category, message in flashes %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show mb-2" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
-    {% endif %}
-  {% endwith %}
+    {% endfor %}
+  </div>
+  {% endif %}
 
   <!-- Page content -->
   <div id="content-area">

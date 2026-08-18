@@ -1,9 +1,11 @@
 import logging
-from flask import Blueprint, session, redirect, url_for, render_template
-from core.qb_client import is_logged_in, session_snapshot
-from core.cache import _cache, _start_bg_fetch
 
-bp  = Blueprint("pages", __name__)
+from flask import Blueprint, redirect, render_template, url_for
+
+from core.cache import _cache, _start_bg_fetch
+from core.qb_client import is_logged_in, session_snapshot
+
+bp = Blueprint("pages", __name__)
 log = logging.getLogger(__name__)
 
 

@@ -1,5 +1,6 @@
-import time
 import logging
+import time
+
 import requests
 from flask import session as flask_session
 
@@ -10,10 +11,10 @@ _qb_sessions: dict[str, requests.Session] = {}
 
 
 def qb_request(session_data, method, endpoint, **kwargs):
-    sid        = session_data["qb_sid"]
+    sid = session_data["qb_sid"]
     sid_cookie = session_data.get("qb_sid_cookie", "SID")
-    base_url   = session_data["qb_url"].rstrip("/")
-    url        = f"{base_url}{endpoint}"
+    base_url = session_data["qb_url"].rstrip("/")
+    url = f"{base_url}{endpoint}"
 
     if sid not in _qb_sessions:
         s = requests.Session()
@@ -23,9 +24,11 @@ def qb_request(session_data, method, endpoint, **kwargs):
         _qb_sessions[sid].cookies.set(sid_cookie, sid)
 
     try:
-        t0   = time.monotonic()
+        t0 = time.monotonic()
         resp = _qb_sessions[sid].request(method, url, timeout=30, **kwargs)
-        log.debug("qb %s %s → %s (%.2fs)", method, endpoint, resp.status_code, time.monotonic() - t0)
+        log.debug(
+            "qb %s %s → %s (%.2fs)", method, endpoint, resp.status_code, time.monotonic() - t0
+        )
         resp.raise_for_status()
         return resp
     except requests.exceptions.ConnectionError as exc:

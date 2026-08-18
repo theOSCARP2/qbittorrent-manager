@@ -1,17 +1,20 @@
-import os
 import io
-import time
-import shutil
 import logging
+import os
+import shutil
 import tempfile
 import threading
-from flask import Blueprint, session, request, jsonify, send_file
-from core.qb_client import is_logged_in, qb_request, session_snapshot as _session_snapshot
-from core.cache import _cache, _start_bg_fetch, CACHE_TTL
-from core.config import _SORT_COLS
-from core.validators import valid_hash, valid_hashes, safe_path
+import time
 
-bp  = Blueprint("torrents", __name__)
+from flask import Blueprint, jsonify, request, send_file, session
+
+from core.cache import CACHE_TTL, _cache, _start_bg_fetch
+from core.config import _SORT_COLS
+from core.qb_client import is_logged_in, qb_request
+from core.qb_client import session_snapshot as _session_snapshot
+from core.validators import safe_path, valid_hash, valid_hashes
+
+bp = Blueprint("torrents", __name__)
 log = logging.getLogger(__name__)
 
 
@@ -33,8 +36,9 @@ def api_torrents():
         log.debug("Cache vide, démarrage de la récupération")
         _start_bg_fetch(session_snapshot)
         draw = int(request.args.get("draw", 1))
-        return jsonify({"draw": draw, "recordsTotal": 0, "recordsFiltered": 0,
-                        "data": [], "loading": True})
+        return jsonify(
+            {"draw": draw, "recordsTotal": 0, "recordsFiltered": 0, "data": [], "loading": True}
+        )
 
     if _cache.age() > CACHE_TTL:
         log.debug("Cache expiré (%.0fs), rafraîchissement en arrière-plan", _cache.age())
@@ -42,14 +46,14 @@ def api_torrents():
 
     data = _cache.get()
 
-    draw            = int(request.args.get("draw", 1))
-    start           = int(request.args.get("start", 0))
-    length          = int(request.args.get("length", 20))
-    search          = request.args.get("search[value]", "").strip().lower()
-    order_col       = int(request.args.get("order[0][column]", 1))
-    order_dir       = request.args.get("order[0][dir]", "asc")
+    draw = int(request.args.get("draw", 1))
+    start = int(request.args.get("start", 0))
+    length = int(request.args.get("length", 20))
+    search = request.args.get("search[value]", "").strip().lower()
+    order_col = int(request.args.get("order[0][column]", 1))
+    order_dir = request.args.get("order[0][dir]", "asc")
     category_filter = request.args.get("category", "").strip()
-    state_filter    = request.args.get("state", "").strip()
+    state_filter = request.args.get("state", "").strip()
 
     filtered = data
     if search:
@@ -60,20 +64,28 @@ def api_torrents():
         filtered = [t for t in filtered if t.get("state", "") == state_filter]
 
     sort_key = _SORT_COLS.get(order_col, "name")
-    reverse  = order_dir == "desc"
+    reverse = order_dir == "desc"
     _STR_COLS = {"name", "category", "state"}
     if sort_key in _STR_COLS:
-        filtered = sorted(filtered, key=lambda t: str(t.get(sort_key) or "").lower(), reverse=reverse)
+        filtered = sorted(
+            filtered, key=lambda t: str(t.get(sort_key) or "").lower(), reverse=reverse
+        )
     else:
-        filtered = sorted(filtered, key=lambda t: t.get(sort_key) if isinstance(t.get(sort_key), (int, float)) else 0, reverse=reverse)
+        filtered = sorted(
+            filtered,
+            key=lambda t: t.get(sort_key) if isinstance(t.get(sort_key), (int, float)) else 0,
+            reverse=reverse,
+        )
 
-    page = filtered[start: start + length]
-    return jsonify({
-        "draw":            draw,
-        "recordsTotal":    len(data),
-        "recordsFiltered": len(filtered),
-        "data":            page,
-    })
+    page = filtered[start : start + length]
+    return jsonify(
+        {
+            "draw": draw,
+            "recordsTotal": len(data),
+            "recordsFiltered": len(filtered),
+            "data": page,
+        }
+    )
 
 
 @bp.route("/api/torrents/states")
@@ -107,14 +119,15 @@ def api_qb_categories():
 def api_torrent_set_category():
     if not is_logged_in():
         return jsonify({"error": "Not authenticated"}), 401
-    body  = request.get_json(force=True, silent=True) or {}
+    body = request.get_json(force=True, silent=True) or {}
     hash_ = body.get("hash", "").strip()
-    cat   = body.get("category", "").strip()
+    cat = body.get("category", "").strip()
     if not valid_hash(hash_):
         return jsonify({"error": "Invalid hash"}), 400
     try:
-        qb_request(session, "POST", "/api/v2/torrents/setCategory",
-                   data={"hashes": hash_, "category": cat})
+        qb_request(
+            session, "POST", "/api/v2/torrents/setCategory", data={"hashes": hash_, "category": cat}
+        )
         with _cache._lock:
             for t in _cache._data:
                 if t.get("hash") == hash_:
@@ -130,19 +143,25 @@ def api_torrent_add():
     if not is_logged_in():
         return jsonify({"error": "Not authenticated"}), 401
 
-    savepath  = request.form.get("savepath", "").strip()
-    category  = request.form.get("category", "").strip()
-    paused    = request.form.get("paused", "false")
+    savepath = request.form.get("savepath", "").strip()
+    category = request.form.get("category", "").strip()
+    paused = request.form.get("paused", "false")
     form_data = {"paused": paused}
-    if savepath: form_data["savepath"] = savepath
-    if category: form_data["category"] = category
+    if savepath:
+        form_data["savepath"] = savepath
+    if category:
+        form_data["category"] = category
 
     try:
         if "torrents" in request.files:
-            f    = request.files["torrents"]
-            resp = qb_request(session, "POST", "/api/v2/torrents/add",
-                              files={"torrents": (f.filename, f.read(), "application/x-bittorrent")},
-                              data=form_data)
+            f = request.files["torrents"]
+            resp = qb_request(
+                session,
+                "POST",
+                "/api/v2/torrents/add",
+                files={"torrents": (f.filename, f.read(), "application/x-bittorrent")},
+                data=form_data,
+            )
         else:
             urls = request.form.get("urls", "").strip()
             if not urls:
@@ -178,45 +197,50 @@ def api_torrent_create():
     try:
         import torf
     except ImportError:
-        return jsonify({"error": "La librairie 'torf' n'est pas installée (pip install torf)."}), 500
+        return (
+            jsonify({"error": "La librairie 'torf' n'est pas installée (pip install torf)."}),
+            500,
+        )
 
     is_upload = "multipart/form-data" in (request.content_type or "")
-    tmpdir    = None
+    tmpdir = None
 
     try:
         if is_upload:
-            files      = request.files.getlist("files[]")
-            rel_paths  = request.form.getlist("rel_paths[]")
-            name       = (request.form.get("name") or "").strip()
-            trackers   = [t.strip() for t in (request.form.get("trackers") or "").splitlines() if t.strip()]
+            files = request.files.getlist("files[]")
+            rel_paths = request.form.getlist("rel_paths[]")
+            name = (request.form.get("name") or "").strip()
+            trackers = [
+                t.strip() for t in (request.form.get("trackers") or "").splitlines() if t.strip()
+            ]
             piece_size = int(request.form.get("piece_size") or 0)
-            private    = request.form.get("private") == "true"
-            comment    = (request.form.get("comment") or "").strip()
-            source     = (request.form.get("source") or "").strip()
-            add_to_qb  = request.form.get("add_to_qb") == "true"
+            private = request.form.get("private") == "true"
+            comment = (request.form.get("comment") or "").strip()
+            source = (request.form.get("source") or "").strip()
+            add_to_qb = request.form.get("add_to_qb") == "true"
 
             if not files:
                 return jsonify({"error": "Aucun fichier reçu."}), 400
 
             tmpdir = tempfile.mkdtemp(prefix="qbm-create-")
-            for f, rel in zip(files, rel_paths or [f.filename for f in files]):
+            for f, rel in zip(files, rel_paths or [f.filename for f in files], strict=False):
                 dest = os.path.join(tmpdir, rel.replace("/", os.sep).replace("\\", os.sep))
                 os.makedirs(os.path.dirname(dest), exist_ok=True)
                 f.save(dest)
 
-            top           = os.listdir(tmpdir)
+            top = os.listdir(tmpdir)
             torrent_input = os.path.join(tmpdir, top[0]) if len(top) == 1 else tmpdir
 
         else:
-            body       = request.get_json(force=True) or {}
-            path_str   = (body.get("path") or "").strip()
-            name       = (body.get("name") or "").strip()
-            trackers   = [t.strip() for t in (body.get("trackers") or "").splitlines() if t.strip()]
+            body = request.get_json(force=True) or {}
+            path_str = (body.get("path") or "").strip()
+            name = (body.get("name") or "").strip()
+            trackers = [t.strip() for t in (body.get("trackers") or "").splitlines() if t.strip()]
             piece_size = int(body.get("piece_size") or 0)
-            private    = bool(body.get("private", False))
-            comment    = (body.get("comment") or "").strip()
-            source     = (body.get("source") or "").strip()
-            add_to_qb  = bool(body.get("add_to_qb", True))
+            private = bool(body.get("private", False))
+            comment = (body.get("comment") or "").strip()
+            source = (body.get("source") or "").strip()
+            add_to_qb = bool(body.get("add_to_qb", True))
 
             if not path_str:
                 return jsonify({"error": "Veuillez saisir un chemin."}), 400
@@ -227,29 +251,42 @@ def api_torrent_create():
             torrent_input = path_str
 
         t = torf.Torrent(path=torrent_input)
-        if name:       t.name       = name
-        if trackers:   t.trackers   = [[tr] for tr in trackers]
-        if piece_size: t.piece_size = piece_size
+        if name:
+            t.name = name
+        if trackers:
+            t.trackers = [[tr] for tr in trackers]
+        if piece_size:
+            t.piece_size = piece_size
         t.private = private
-        if comment:    t.comment    = comment
-        if source:     t.source     = source
+        if comment:
+            t.comment = comment
+        if source:
+            t.source = source
 
         t.generate(threads=2)
 
         torrent_name = t.name or "torrent"
-        tmp_f        = tempfile.NamedTemporaryFile(suffix=".torrent", delete=False)
-        tmp_f.close()
-        t.write(tmp_f.name, overwrite=True)
+        with tempfile.NamedTemporaryFile(suffix=".torrent", delete=False) as tmp_f:
+            tmp_path = tmp_f.name
+        t.write(tmp_path, overwrite=True)
 
-        with open(tmp_f.name, "rb") as fh:
+        with open(tmp_path, "rb") as fh:
             torrent_bytes = fh.read()
-        os.unlink(tmp_f.name)
+        os.unlink(tmp_path)
 
         if add_to_qb:
-            qb_request(session, "POST", "/api/v2/torrents/add",
-                       files={"torrents": (f"{torrent_name}.torrent",
-                                           torrent_bytes,
-                                           "application/x-bittorrent")})
+            qb_request(
+                session,
+                "POST",
+                "/api/v2/torrents/add",
+                files={
+                    "torrents": (
+                        f"{torrent_name}.torrent",
+                        torrent_bytes,
+                        "application/x-bittorrent",
+                    )
+                },
+            )
             _cache.invalidate()
             _start_bg_fetch(_session_snapshot())
             log.info("Torrent créé et ajouté à qBittorrent : %s", torrent_name)
@@ -276,7 +313,7 @@ def api_torrent_trackers():
     if not valid_hash(hash_):
         return jsonify({"error": "Invalid hash"}), 400
     try:
-        resp     = qb_request(session, "GET", f"/api/v2/torrents/trackers?hash={hash_}")
+        resp = qb_request(session, "GET", f"/api/v2/torrents/trackers?hash={hash_}")
         trackers = [t for t in resp.json() if not t.get("url", "").startswith("** ")]
         return jsonify(trackers)
     except RuntimeError as exc:
@@ -316,7 +353,7 @@ def api_torrent_action():
     if not is_logged_in():
         return jsonify({"error": "Not authenticated"}), 401
 
-    body   = request.get_json(force=True, silent=True) or {}
+    body = request.get_json(force=True, silent=True) or {}
     action = body.get("action")
     hashes = body.get("hashes", [])
 
@@ -327,10 +364,10 @@ def api_torrent_action():
 
     hashes_str = "|".join(hashes)
     action_map = {
-        "pause":   "/api/v2/torrents/stop",
-        "resume":  "/api/v2/torrents/start",
+        "pause": "/api/v2/torrents/stop",
+        "resume": "/api/v2/torrents/start",
         "recheck": "/api/v2/torrents/recheck",
-        "delete":  "/api/v2/torrents/delete",
+        "delete": "/api/v2/torrents/delete",
     }
 
     if action not in action_map:
@@ -349,7 +386,12 @@ def api_torrent_action():
             elif action == "pause":
                 for t in _cache._data:
                     if t.get("hash") in hash_set:
-                        t["state"] = "pausedDL" if t.get("state", "").endswith("DL") or t.get("state") in ("downloading", "metaDL", "forcedDL") else "pausedUP"
+                        t["state"] = (
+                            "pausedDL"
+                            if t.get("state", "").endswith("DL")
+                            or t.get("state") in ("downloading", "metaDL", "forcedDL")
+                            else "pausedUP"
+                        )
             elif action == "resume":
                 for t in _cache._data:
                     if t.get("hash") in hash_set:
@@ -376,15 +418,19 @@ def api_torrent_action():
 def api_torrent_set_file_priority():
     if not is_logged_in():
         return jsonify({"error": "Not authenticated"}), 401
-    body     = request.get_json(force=True, silent=True) or {}
-    hash_    = body.get("hash", "").strip()
-    file_id  = body.get("id")
+    body = request.get_json(force=True, silent=True) or {}
+    hash_ = body.get("hash", "").strip()
+    file_id = body.get("id")
     priority = body.get("priority")
     if not hash_ or file_id is None or priority is None:
         return jsonify({"error": "Missing parameters"}), 400
     try:
-        qb_request(session, "POST", "/api/v2/torrents/filePrio",
-                   data={"hash": hash_, "id": str(file_id), "priority": str(priority)})
+        qb_request(
+            session,
+            "POST",
+            "/api/v2/torrents/filePrio",
+            data={"hash": hash_, "id": str(file_id), "priority": str(priority)},
+        )
         log.debug("Priorité fichier %s[%s] → %s", hash_[:8], file_id, priority)
         return jsonify({"ok": True})
     except RuntimeError as exc:
@@ -395,16 +441,20 @@ def api_torrent_set_file_priority():
 def api_torrent_set_location():
     if not is_logged_in():
         return jsonify({"error": "Not authenticated"}), 401
-    body     = request.get_json(force=True, silent=True) or {}
-    hash_    = body.get("hash", "").strip()
+    body = request.get_json(force=True, silent=True) or {}
+    hash_ = body.get("hash", "").strip()
     location = body.get("location", "").strip()
     if not valid_hash(hash_):
         return jsonify({"error": "Invalid hash"}), 400
     if not location or not safe_path(location):
         return jsonify({"error": "Invalid location"}), 400
     try:
-        qb_request(session, "POST", "/api/v2/torrents/setLocation",
-                   data={"hashes": hash_, "location": location})
+        qb_request(
+            session,
+            "POST",
+            "/api/v2/torrents/setLocation",
+            data={"hashes": hash_, "location": location},
+        )
         with _cache._lock:
             for t in _cache._data:
                 if t.get("hash") == hash_:
@@ -420,21 +470,29 @@ def api_torrent_set_location():
 def api_torrent_set_speed_limit():
     if not is_logged_in():
         return jsonify({"error": "Not authenticated"}), 401
-    body   = request.get_json(force=True, silent=True) or {}
-    hash_  = body.get("hash", "").strip()
-    dl     = body.get("dl_limit")
-    up     = body.get("up_limit")
+    body = request.get_json(force=True, silent=True) or {}
+    hash_ = body.get("hash", "").strip()
+    dl = body.get("dl_limit")
+    up = body.get("up_limit")
     if not valid_hash(hash_):
         return jsonify({"error": "Invalid hash"}), 400
     if dl is None and up is None:
         return jsonify({"error": "Missing dl_limit or up_limit"}), 400
     try:
         if dl is not None:
-            qb_request(session, "POST", "/api/v2/torrents/setDownloadLimit",
-                       data={"hashes": hash_, "limit": str(int(dl))})
+            qb_request(
+                session,
+                "POST",
+                "/api/v2/torrents/setDownloadLimit",
+                data={"hashes": hash_, "limit": str(int(dl))},
+            )
         if up is not None:
-            qb_request(session, "POST", "/api/v2/torrents/setUploadLimit",
-                       data={"hashes": hash_, "limit": str(int(up))})
+            qb_request(
+                session,
+                "POST",
+                "/api/v2/torrents/setUploadLimit",
+                data={"hashes": hash_, "limit": str(int(up))},
+            )
         log.info("Limites vitesse %s → DL=%s UP=%s", hash_[:8], dl, up)
         return jsonify({"ok": True})
     except RuntimeError as exc:

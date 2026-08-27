@@ -38,7 +38,7 @@ class MoveBody(BaseModel):
 def api_categories(request: Request):
     try:
         return category_service.get_stats(request.session)
-    except RuntimeError as exc:
+    except Exception as exc:
         return JSONResponse({"error": str(exc)}, status_code=502)
 
 
@@ -58,7 +58,7 @@ def api_category_create(request: Request, body: CreateBody):
     try:
         category_service.create(request.session, body.name.strip(), (body.save_path or "").strip())
         return {"ok": True}
-    except RuntimeError as exc:
+    except Exception as exc:
         return JSONResponse({"error": str(exc)}, status_code=502)
 
 
@@ -76,7 +76,7 @@ def api_category_edit(request: Request, body: EditBody):
         )
         _cache.invalidate()
         return {"ok": True}
-    except RuntimeError as exc:
+    except Exception as exc:
         return JSONResponse({"error": str(exc)}, status_code=502)
 
 
@@ -89,7 +89,7 @@ def api_category_delete(request: Request, body: DeleteBody):
         category_service.delete(request.session, name)
         _cache.invalidate()
         return {"ok": True}
-    except RuntimeError as exc:
+    except Exception as exc:
         return JSONResponse({"error": str(exc)}, status_code=502)
 
 
@@ -102,5 +102,5 @@ def api_category_move_torrents(request: Request, body: MoveBody):
         result = category_service.move_torrents(request.session, src, (body.dst or "").strip())
         _cache.invalidate()
         return result
-    except RuntimeError as exc:
+    except Exception as exc:
         return JSONResponse({"error": str(exc)}, status_code=502)

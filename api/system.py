@@ -63,5 +63,5 @@ def api_qb_logs(request: Request, last_id: str = "-1"):
             f"/api/v2/log/main?last_known_id={last_id}&normal=true&info=true&warning=true&critical=true",
         )
         return resp.json()
-    except RuntimeError as exc:
+    except Exception as exc:
         return JSONResponse({"error": str(exc)}, status_code=502)

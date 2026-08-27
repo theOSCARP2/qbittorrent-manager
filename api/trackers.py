@@ -26,7 +26,7 @@ class DeleteManyBody(BaseModel):
 def api_trackers(request: Request):
     try:
         return tracker_service.build_tracker_map(request.session)
-    except RuntimeError as exc:
+    except Exception as exc:
         return JSONResponse({"error": str(exc)}, status_code=502)
 
 
@@ -46,7 +46,8 @@ def api_tracker_bulk(request: Request, body: BulkBody):
 
     try:
         return tracker_service.bulk_operation(request.session, operation, old_url, new_url)
-    except RuntimeError as exc:
+    except Exception as exc:
+        log.exception("bulk_operation error")
         return JSONResponse({"error": str(exc)}, status_code=502)
 
 
@@ -57,5 +58,5 @@ def api_tracker_delete_many(request: Request, body: DeleteManyBody):
         return JSONResponse({"error": "No tracker URLs provided"}, status_code=400)
     try:
         return tracker_service.delete_many(request.session, urls)
-    except RuntimeError as exc:
+    except Exception as exc:
         return JSONResponse({"error": str(exc)}, status_code=502)

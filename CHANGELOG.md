@@ -5,6 +5,15 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [2.0.3] - 2026-08-27
+
+### Corrigé
+- **Flash messages traduits** — les messages de connexion/déconnexion respectent désormais la langue sélectionnée (FR/EN)
+- **Opérations trackers** — toutes les exceptions retournent maintenant du JSON au lieu d'un 500 HTML (plus de JSON parse error dans l'UI)
+- **Cross-seed (Python 3.9)** — `dict | None` remplacé par `dict` pour compatibilité Python 3.9
+
+---
+
 ## [2.0.2] - 2026-08-27
 
 ### Corrigé

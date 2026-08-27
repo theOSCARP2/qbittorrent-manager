@@ -40,14 +40,14 @@ async def login_post(
 ):
     expected_csrf = request.session.get("_csrf_token", "")
     if not expected_csrf or not secrets.compare_digest(expected_csrf, csrf_token):
-        flash(request, "Session expirée. Veuillez réessayer.", "danger")
+        flash(request, "flash.session_expired", "danger")
         return RedirectResponse("/login", status_code=303)
 
     qb_url = qb_url.strip().rstrip("/")
     username = username.strip()
 
     if not qb_url:
-        flash(request, "Server URL is required.", "danger")
+        flash(request, "flash.url_required", "danger")
         return templates.TemplateResponse(
             request, "login.html",
             {"flashes": pop_flashes(request), "form_qb_url": qb_url, "form_username": username},
@@ -81,21 +81,17 @@ async def login_post(
             _start_bg_fetch({"qb_url": qb_url, "qb_sid": sid, "qb_sid_cookie": sid_key})
             return RedirectResponse("/torrents", status_code=303)
         elif body in ("Fails.", "fails"):
-            flash(request, "Invalid username or password.", "danger")
+            flash(request, "flash.invalid_credentials", "danger")
         elif resp.status_code == 403:
-            flash(
-                request,
-                "qBittorrent refused the connection (403). Check your IP ban settings.",
-                "danger",
-            )
+            flash(request, "flash.connection_refused", "danger")
         else:
             log.warning("qBittorrent login: status=%s body=%r", resp.status_code, body)
-            flash(request, "Invalid username or password.", "danger")
+            flash(request, "flash.invalid_credentials", "danger")
 
     except _requests.exceptions.ConnectionError:
-        flash(request, f"Cannot connect to {qb_url}. Check the URL and try again.", "danger")
+        flash(request, f"flash.cannot_connect|{qb_url}", "danger")
     except _requests.exceptions.Timeout:
-        flash(request, "Connection timed out.", "danger")
+        flash(request, "flash.timeout", "danger")
 
     return templates.TemplateResponse(
         request, "login.html",
@@ -114,5 +110,5 @@ def logout(request: Request):
             pass
         _qb_sessions.pop(sid, None)
     request.session.clear()
-    flash(request, "You have been logged out.", "info")
+    flash(request, "flash.logged_out", "info")
     return RedirectResponse("/login", status_code=302)

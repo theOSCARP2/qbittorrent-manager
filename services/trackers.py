@@ -178,7 +178,7 @@ def delete_many(session, urls: list[str]) -> dict:
 
 def _find_torrents_with_tracker(session, torrents_list: list, tracker_url: str) -> list:
     """Retourne la liste des torrents possédant ce tracker — requêtes parallèles."""
-    def _check(torrent: dict) -> dict | None:
+    def _check(torrent: dict) -> dict:
         t_hash = torrent.get("hash", "")
         try:
             tr_urls = [

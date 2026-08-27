@@ -121,7 +121,7 @@ def api_qb_categories(request: Request):
     try:
         resp = qb_request(request.session, "GET", "/api/v2/torrents/categories")
         return sorted(resp.json().keys())
-    except RuntimeError as exc:
+    except Exception as exc:
         return JSONResponse({"error": str(exc)}, status_code=502)
 
 
@@ -140,7 +140,7 @@ def api_torrent_set_category(request: Request, body: SetCategoryBody):
         )
         _cache.update_torrent(hash_, category=cat)
         return {"ok": True}
-    except RuntimeError as exc:
+    except Exception as exc:
         return JSONResponse({"error": str(exc)}, status_code=502)
 
 
@@ -190,7 +190,7 @@ async def api_torrent_add(
                 _start_bg_fetch(session_snapshot(request.session))
                 return {"ok": True}
             return JSONResponse({"error": body_text}, status_code=400)
-    except RuntimeError as exc:
+    except Exception as exc:
         return JSONResponse({"error": str(exc)}, status_code=502)
 
 
@@ -319,7 +319,7 @@ def api_torrent_trackers(request: Request, hash: str = ""):
     try:
         resp = qb_request(request.session, "GET", f"/api/v2/torrents/trackers?hash={hash_}")
         return [t for t in resp.json() if not t.get("url", "").startswith("** ")]
-    except RuntimeError as exc:
+    except Exception as exc:
         return JSONResponse({"error": str(exc)}, status_code=502)
 
 
@@ -331,7 +331,7 @@ def api_torrent_files(request: Request, hash: str = ""):
     try:
         resp = qb_request(request.session, "GET", f"/api/v2/torrents/files?hash={hash_}")
         return resp.json()
-    except RuntimeError as exc:
+    except Exception as exc:
         return JSONResponse({"error": str(exc)}, status_code=502)
 
 
@@ -343,7 +343,7 @@ def api_torrent_properties(request: Request, hash: str = ""):
     try:
         resp = qb_request(request.session, "GET", f"/api/v2/torrents/properties?hash={hash_}")
         return resp.json()
-    except RuntimeError as exc:
+    except Exception as exc:
         return JSONResponse({"error": str(exc)}, status_code=502)
 
 
@@ -387,7 +387,7 @@ def api_torrent_action(request: Request, body: ActionBody):
 
         threading.Thread(target=_delayed_refresh, daemon=True).start()
         return {"ok": True, "action": action, "count": len(hashes)}
-    except RuntimeError as exc:
+    except Exception as exc:
         return JSONResponse({"error": str(exc)}, status_code=502)
 
 
@@ -405,7 +405,7 @@ def api_torrent_set_file_priority(request: Request, body: FilePriorityBody):
         )
         log.debug("Priorité fichier %s[%s] → %s", hash_[:8], body.id, body.priority)
         return {"ok": True}
-    except RuntimeError as exc:
+    except Exception as exc:
         return JSONResponse({"error": str(exc)}, status_code=502)
 
 
@@ -427,7 +427,7 @@ def api_torrent_set_location(request: Request, body: SetLocationBody):
         _cache.update_torrent(hash_, save_path=location)
         log.info("Répertoire torrent %s → %s", hash_[:8], location)
         return {"ok": True}
-    except RuntimeError as exc:
+    except Exception as exc:
         return JSONResponse({"error": str(exc)}, status_code=502)
 
 
@@ -455,5 +455,5 @@ def api_torrent_set_speed_limit(request: Request, body: SetSpeedLimitBody):
             )
         log.info("Limites vitesse %s → DL=%s UP=%s", hash_[:8], body.dl_limit, body.up_limit)
         return {"ok": True}
-    except RuntimeError as exc:
+    except Exception as exc:
         return JSONResponse({"error": str(exc)}, status_code=502)

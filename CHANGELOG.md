@@ -5,6 +5,13 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [2.0.1] - 2026-08-27
+
+### Corrigé
+- **Répertoire par défaut des catégories** — le chemin de sauvegarde configuré dans qBittorrent est maintenant auto-rempli dans le modal d'ajout de torrent lors de la sélection d'une catégorie
+
+---
+
 ## [2.0.0] - 2026-08-18
 
 ### Refonte majeure

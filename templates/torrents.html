@@ -412,6 +412,7 @@ let currentDetailFiles    = null;
 let currentDetailTrackers = null;
 let detailRefreshTimer    = null;
 let availableCategories = [];
+let categoryPathMap = {};  // nom → savePath
 
 // ── Colonnes visibles selon la largeur d'écran ────────────────────────────────
 // mobile < 768 : checkbox, nom, progression, état, DL, actions
@@ -1008,6 +1009,11 @@ function addSwitchTab(tab) {
 document.getElementById('add-tab-magnet').addEventListener('click', () => addSwitchTab('magnet'));
 document.getElementById('add-tab-file').addEventListener('click',   () => addSwitchTab('file'));
 
+document.getElementById('add-category').addEventListener('change', function () {
+  const path = categoryPathMap[this.value] || '';
+  document.getElementById('add-savepath').value = path;
+});
+
 document.getElementById('btn-add-torrent').addEventListener('click', () => {
   // Pré-remplir le select catégorie
   const sel = document.getElementById('add-category');
@@ -1350,12 +1356,20 @@ document.addEventListener('click', async e => {
 initNotifications();
 initTable();
 
-// Charger les catégories pour le panneau détail (qBit + cache)
+// Charger les catégories (noms + save paths)
 Promise.all([
+  fetch('/api/categories').then(r => r.json()).catch(() => ({})),
   fetch('/api/qb/categories').then(r => r.json()).catch(() => []),
   fetch('/api/torrents/categories').then(r => r.json()).catch(() => []),
-]).then(([qbCats, cacheCats]) => {
+]).then(([catStats, qbCats, cacheCats]) => {
+  // Construire la map nom → savePath
+  if (catStats && typeof catStats === 'object' && !Array.isArray(catStats)) {
+    Object.values(catStats).forEach(c => {
+      if (c.name) categoryPathMap[c.name] = c.savePath || '';
+    });
+  }
   const all = new Set([
+    ...Object.keys(categoryPathMap),
     ...(Array.isArray(qbCats)    ? qbCats    : []),
     ...(Array.isArray(cacheCats) ? cacheCats : []),
   ]);

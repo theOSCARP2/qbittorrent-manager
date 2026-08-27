@@ -5,6 +5,13 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [2.0.2] - 2026-08-27
+
+### Corrigé
+- **Navigation mobile** — la barre de navigation inférieure est maintenant fixée en bas de l'écran (`position: fixed`) et reste accessible quelle que soit la longueur de la page
+
+---
+
 ## [2.0.1] - 2026-08-27
 
 ### Corrigé

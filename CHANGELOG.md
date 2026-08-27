@@ -5,6 +5,17 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [2.0.6] - 2026-08-27
+
+### Amélioré
+- **Syntaxe Python 3.10+** — remplacement de `Optional[X]` par `X | None`, `List[X]` par `list[X]`, suppression des imports `typing` inutilisés
+- **`match/case`** — conversion du bloc `if/elif` sur `operation` dans `services/trackers.py`
+
+### Corrigé
+- **Ajout de torrent** — `UploadFile | None` dans la signature de route corrigeait une erreur Pydantic `ForwardRef` (500 au POST `/api/torrent/add`)
+
+---
+
 ## [2.0.5] - 2026-08-27
 
 ### Corrigé

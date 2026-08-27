@@ -1076,16 +1076,14 @@ document.getElementById('btn-add-confirm').addEventListener('click', async () =>
       const added      = results.length - failed.length;
       addModal.hide();
       if (failed.length === 0) {
-        showToast(results.length > 1 ? `${added} torrents ajoutés.` : __('add.success'), 'success');
+        showToast(results.length > 1 ? `${added} ${__('add.added_many')}` : __('add.success'), 'success');
       } else if (errors.length === 0) {
-        // Que des doublons
         const dupMsg = duplicates.length === 1 ? __('add.duplicate') : `${duplicates.length} ${__('add.duplicate_many')}`;
-        showToast(added > 0 ? `${added} ajouté(s). ${dupMsg}` : dupMsg, 'warning');
+        showToast(added > 0 ? `${added} ${__('add.added_many')} ${dupMsg}` : dupMsg, 'warning');
       } else {
-        // Mix d'ajouts, doublons et erreurs
-        let msg = `${added}/${results.length} ajouté(s).`;
+        let msg = `${added}/${results.length} ${__('add.added_many')}`;
         if (duplicates.length) msg += ` ${duplicates.length} ${__('add.duplicate_many')}`;
-        if (errors.length)     msg += ` ${errors.length} erreur(s).`;
+        if (errors.length)     msg += ` ${errors.length} ${__('add.errors_many')}`;
         showToast(msg, 'warning');
       }
       setTimeout(() => dt.ajax.reload(null, false), 1500);

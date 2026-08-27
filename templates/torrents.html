@@ -1056,7 +1056,8 @@ document.getElementById('btn-add-confirm').addEventListener('click', async () =>
         showToast(__('add.success'), 'success');
         setTimeout(() => dt.ajax.reload(null, false), 1500);
       } else {
-        showToast(data.error || __('add.error'), 'danger');
+        const msg = data.error === 'duplicate' ? __('add.duplicate') : (data.error || __('add.error'));
+        showToast(msg, data.error === 'duplicate' ? 'warning' : 'danger');
       }
     } else {
       const files = Array.from(document.getElementById('add-file').files);
@@ -1069,12 +1070,23 @@ document.getElementById('btn-add-confirm').addEventListener('click', async () =>
         f.append('paused', paused);
         return fetch('/api/torrent/add', { method: 'POST', body: f }).then(r => r.json());
       }));
-      const failed = results.filter(r => !r.ok);
+      const failed     = results.filter(r => !r.ok);
+      const duplicates = results.filter(r => r.error === 'duplicate');
+      const errors     = failed.filter(r => r.error !== 'duplicate');
+      const added      = results.length - failed.length;
       addModal.hide();
       if (failed.length === 0) {
-        showToast(files.length > 1 ? `${files.length} torrents ajoutés.` : __('add.success'), 'success');
+        showToast(results.length > 1 ? `${added} torrents ajoutés.` : __('add.success'), 'success');
+      } else if (errors.length === 0) {
+        // Que des doublons
+        const dupMsg = duplicates.length === 1 ? __('add.duplicate') : `${duplicates.length} ${__('add.duplicate_many')}`;
+        showToast(added > 0 ? `${added} ajouté(s). ${dupMsg}` : dupMsg, 'warning');
       } else {
-        showToast(`${results.length - failed.length}/${results.length} ajoutés. ${failed.length} erreur(s).`, 'warning');
+        // Mix d'ajouts, doublons et erreurs
+        let msg = `${added}/${results.length} ajouté(s).`;
+        if (duplicates.length) msg += ` ${duplicates.length} ${__('add.duplicate_many')}`;
+        if (errors.length)     msg += ` ${errors.length} erreur(s).`;
+        showToast(msg, 'warning');
       }
       setTimeout(() => dt.ajax.reload(null, false), 1500);
     }

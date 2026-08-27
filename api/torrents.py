@@ -183,14 +183,23 @@ async def api_torrent_add(
                 _cache.invalidate()
                 _start_bg_fetch(session_snapshot(request.session))
                 return {"ok": True}
-            return JSONResponse({"error": "; ".join(str(f) for f in failures)}, status_code=400)
+            error_msg = "; ".join(str(f) for f in failures)
+            if "already" in error_msg.lower():
+                return JSONResponse({"error": "duplicate"}, status_code=400)
+            return JSONResponse({"error": error_msg}, status_code=400)
         except Exception:
             if body_text in ("Ok.", "Ok"):
                 _cache.invalidate()
                 _start_bg_fetch(session_snapshot(request.session))
                 return {"ok": True}
+            if "already" in body_text.lower():
+                return JSONResponse({"error": "duplicate"}, status_code=400)
             return JSONResponse({"error": body_text}, status_code=400)
     except Exception as exc:
+        msg = str(exc).lower()
+        if "409" in msg or "conflict" in msg or "already" in msg:
+            return JSONResponse({"error": "duplicate"}, status_code=409)
+        log.warning("torrent add error: %s", exc)
         return JSONResponse({"error": str(exc)}, status_code=502)
 
 

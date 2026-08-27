@@ -5,6 +5,14 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [2.0.4] - 2026-08-27
+
+### Corrigé
+- **Ajout de torrent en doublon** — détection du 409 renvoyé par qBittorrent ; message clair "Ce torrent est déjà dans la liste." (orange) au lieu d'une erreur rouge générique
+- **Ajout multi-fichiers mixte** — le toast détaille maintenant le nombre ajoutés, le nombre de doublons et le nombre d'erreurs séparément
+
+---
+
 ## [2.0.3] - 2026-08-27
 
 ### Corrigé

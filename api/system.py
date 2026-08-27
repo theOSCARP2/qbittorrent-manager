@@ -1,6 +1,5 @@
 import logging
 import time
-from typing import Optional
 
 import requests as _requests
 from fastapi import APIRouter, Depends, Request

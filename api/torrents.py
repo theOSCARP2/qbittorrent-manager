@@ -5,7 +5,6 @@ import shutil
 import tempfile
 import threading
 import time
-from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import JSONResponse, Response
@@ -25,13 +24,13 @@ log = logging.getLogger(__name__)
 
 class SetCategoryBody(BaseModel):
     hash: str
-    category: Optional[str] = ""
+    category: str | None = ""
 
 
 class ActionBody(BaseModel):
     action: str
-    hashes: List[str] = []
-    deleteFiles: Optional[bool] = False
+    hashes: list[str] = []
+    deleteFiles: bool | None = False
 
 
 class FilePriorityBody(BaseModel):
@@ -47,8 +46,8 @@ class SetLocationBody(BaseModel):
 
 class SetSpeedLimitBody(BaseModel):
     hash: str
-    dl_limit: Optional[int] = None
-    up_limit: Optional[int] = None
+    dl_limit: int | None = None
+    up_limit: int | None = None
 
 
 @router.get("/api/torrents/status", response_model=StatusResponse)
@@ -151,7 +150,7 @@ async def api_torrent_add(
     category: str = Form(""),
     paused: str = Form("false"),
     urls: str = Form(""),
-    torrents: Optional[UploadFile] = File(None),
+    torrents: UploadFile | None = File(None),
 ):
     form_data: dict = {"paused": paused}
     if savepath:

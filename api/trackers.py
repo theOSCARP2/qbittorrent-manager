@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
@@ -14,8 +13,8 @@ log = logging.getLogger(__name__)
 
 class BulkBody(BaseModel):
     operation: str
-    old_url: Optional[str] = ""
-    new_url: Optional[str] = ""
+    old_url: str | None = ""
+    new_url: str | None = ""
 
 
 class DeleteManyBody(BaseModel):

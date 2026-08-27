@@ -62,61 +62,62 @@ def bulk_operation(session, operation: str, old_url: str, new_url: str) -> dict:
     failed = 0
     details = []
 
-    if operation == "add":
-        for torrent in torrents_list:
-            t_hash = torrent.get("hash", "")
-            t_name = torrent.get("name", t_hash)
-            try:
-                qb_request(
-                    session,
-                    "POST",
-                    "/api/v2/torrents/addTrackers",
-                    data={"hash": t_hash, "urls": new_url},
-                )
-                success += 1
-                details.append({"name": t_name, "status": "ok"})
-            except RuntimeError as exc:
-                failed += 1
-                details.append({"name": t_name, "status": "error", "message": str(exc)})
+    match operation:
+        case "add":
+            for torrent in torrents_list:
+                t_hash = torrent.get("hash", "")
+                t_name = torrent.get("name", t_hash)
+                try:
+                    qb_request(
+                        session,
+                        "POST",
+                        "/api/v2/torrents/addTrackers",
+                        data={"hash": t_hash, "urls": new_url},
+                    )
+                    success += 1
+                    details.append({"name": t_name, "status": "ok"})
+                except RuntimeError as exc:
+                    failed += 1
+                    details.append({"name": t_name, "status": "error", "message": str(exc)})
 
-    elif operation == "copy":
-        target_torrents = _find_torrents_with_tracker(session, torrents_list, old_url)
-        for torrent in target_torrents:
-            try:
-                qb_request(
-                    session,
-                    "POST",
-                    "/api/v2/torrents/addTrackers",
-                    data={"hash": torrent["hash"], "urls": new_url},
-                )
-                success += 1
-                details.append({"name": torrent["name"], "status": "ok"})
-            except RuntimeError as exc:
-                failed += 1
-                details.append({"name": torrent["name"], "status": "error", "message": str(exc)})
-
-    elif operation in ("replace", "remove"):
-        target_torrents = _find_torrents_with_tracker(session, torrents_list, old_url)
-        for torrent in target_torrents:
-            try:
-                if operation == "replace":
+        case "copy":
+            target_torrents = _find_torrents_with_tracker(session, torrents_list, old_url)
+            for torrent in target_torrents:
+                try:
                     qb_request(
                         session,
                         "POST",
                         "/api/v2/torrents/addTrackers",
                         data={"hash": torrent["hash"], "urls": new_url},
                     )
-                qb_request(
-                    session,
-                    "POST",
-                    "/api/v2/torrents/removeTrackers",
-                    data={"hash": torrent["hash"], "urls": old_url},
-                )
-                success += 1
-                details.append({"name": torrent["name"], "status": "ok"})
-            except RuntimeError as exc:
-                failed += 1
-                details.append({"name": torrent["name"], "status": "error", "message": str(exc)})
+                    success += 1
+                    details.append({"name": torrent["name"], "status": "ok"})
+                except RuntimeError as exc:
+                    failed += 1
+                    details.append({"name": torrent["name"], "status": "error", "message": str(exc)})
+
+        case "replace" | "remove":
+            target_torrents = _find_torrents_with_tracker(session, torrents_list, old_url)
+            for torrent in target_torrents:
+                try:
+                    if operation == "replace":
+                        qb_request(
+                            session,
+                            "POST",
+                            "/api/v2/torrents/addTrackers",
+                            data={"hash": torrent["hash"], "urls": new_url},
+                        )
+                    qb_request(
+                        session,
+                        "POST",
+                        "/api/v2/torrents/removeTrackers",
+                        data={"hash": torrent["hash"], "urls": old_url},
+                    )
+                    success += 1
+                    details.append({"name": torrent["name"], "status": "ok"})
+                except RuntimeError as exc:
+                    failed += 1
+                    details.append({"name": torrent["name"], "status": "error", "message": str(exc)})
 
     return {"ok": True, "operation": operation, "success": success, "failed": failed, "details": details}
 

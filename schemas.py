@@ -1,6 +1,6 @@
 """Pydantic response models partagés entre les routes API."""
 
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -19,7 +19,7 @@ class DashboardResponse(BaseModel):
     dl_speed: int
     up_speed: int
     total_size: int
-    free_space: Optional[int]
+    free_space: int | None
     by_state: dict[str, int]
     by_category: dict[str, int]
     size_by_category: dict[str, int]

@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
@@ -16,13 +15,13 @@ log = logging.getLogger(__name__)
 
 class CreateBody(BaseModel):
     name: str
-    save_path: Optional[str] = ""
+    save_path: str | None = ""
 
 
 class EditBody(BaseModel):
     name: str
-    new_name: Optional[str] = ""
-    save_path: Optional[str] = ""
+    new_name: str | None = ""
+    save_path: str | None = ""
 
 
 class DeleteBody(BaseModel):
@@ -31,7 +30,7 @@ class DeleteBody(BaseModel):
 
 class MoveBody(BaseModel):
     src: str
-    dst: Optional[str] = ""
+    dst: str | None = ""
 
 
 @router.get("/api/categories")

@@ -390,8 +390,12 @@
     /* ── Bottom nav (mobile only) ─────────────────────────────────────────── */
     #bottom-nav {
       display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
       height: 60px;
-      flex-shrink: 0;
+      z-index: 100;
       background: var(--sidebar-bg);
       border-top: 1px solid var(--border);
     }
@@ -441,7 +445,7 @@
       body { height: auto; overflow: auto; }
       #layout-row { overflow: visible; }
       #sidebar { display: none; }
-      #main-area { overflow: visible; }
+      #main-area { overflow: visible; padding-bottom: 60px; }
       #content-area { overflow: visible; }
       #bottom-nav { display: flex; }
       #topbar-theme-toggle { display: flex; }
